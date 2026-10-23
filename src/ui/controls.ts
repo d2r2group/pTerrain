@@ -22,13 +22,13 @@ const MODES: readonly { mode: Mode; symbol: string; label: string; title: string
     mode: "isobar",
     symbol: "p",
     label: "constant p",
-    title: "Cut along an isobar: T across, the slice is g(T)",
+    title: "Switch to constant p: cut along an isobar and plot g against T",
   },
   {
     mode: "isotherm",
     symbol: "T",
     label: "constant T",
-    title: "Cut along an isotherm: p across, the slice is g(p)",
+    title: "Switch to constant T: cut along an isotherm and plot g against p",
   },
 ];
 
@@ -235,8 +235,8 @@ export function createSnapButton(container: HTMLElement, store: Store): void {
     // A valid window always holds the triple point, so there is always one to snap to.
     snap.title =
       mode === "isobar"
-        ? `Move the isobar to p_t = ${formatPressure(params.pt, pressureUnit)}`
-        : `Move the isotherm to T_t = ${formatTemperature(params.Tt)}`;
+        ? `Snap the isobar to the triple point, p_t = ${formatPressure(params.pt, pressureUnit)}`
+        : `Snap the isotherm to the triple point, T_t = ${formatTemperature(params.Tt)}`;
   };
   sync();
   store.subscribe(sync);
@@ -259,13 +259,13 @@ export function createMetastableToggle(container: HTMLElement, store: Store): vo
   label.textContent = "Metastable";
   button.append(eye, label);
   button.setAttribute("aria-label", label.textContent);
-  button.title = "Show or hide the dashed metastable branches and their guide lines";
   button.addEventListener("click", () => store.setShowMetastable(!store.state.showMetastable));
   container.append(button);
 
   const sync = () => {
     const shown = store.state.showMetastable;
     button.setAttribute("aria-pressed", String(shown));
+    button.title = `${shown ? "Hide" : "Show"} the dashed metastable branches and their guide lines`;
     eye.innerHTML = icon(shown ? EYE : EYE_OFF);
   };
   sync();

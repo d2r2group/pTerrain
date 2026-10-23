@@ -107,6 +107,7 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
   details.className = "parameters";
   const summary = document.createElement("summary");
   summary.textContent = "Parameters";
+  summary.title = "Show or hide the substance's parameters, to edit them";
   const form = document.createElement("form");
   form.noValidate = true;
   const inputs = {} as Record<FieldKey, HTMLInputElement>;
@@ -120,6 +121,7 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
   apply.type = "submit";
   apply.className = "apply";
   apply.textContent = "Apply";
+  apply.title = "Redraw the plots with the edited parameters";
   apply.disabled = true;
   // Import, Export and Share side by side under Apply, together as wide as it.
   const actions = document.createElement("div");

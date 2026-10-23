@@ -237,6 +237,7 @@ export function createFooter(container: HTMLElement): void {
   // "Model Details".
   button.innerHTML = `<span class="button-math" aria-hidden="true">${tex`g(T, p)`}</span>Model Details`;
   button.setAttribute("aria-haspopup", "dialog");
+  button.title = "Open how the model works, with its equations and the substance data";
   // The glyphs that every formula references, drawn once, outside the dialog, so that the
   // button's formula has them while the dialog is closed.
   const glyphs = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -253,7 +254,7 @@ export function createFooter(container: HTMLElement): void {
   dialog.setAttribute("aria-labelledby", "model-details-title");
   dialog.innerHTML =
     '<div class="dialog-head"><h2 id="model-details-title">Model details</h2>' +
-    '<button type="button" class="dialog-close" aria-label="Close">×</button></div>' +
+    '<button type="button" class="dialog-close" aria-label="Close" title="Close (Esc)">×</button></div>' +
     `<div class="dialog-body">${modelDetailsHtml()}</div>`;
   const close = dialog.querySelector<HTMLButtonElement>(".dialog-close")!;
 

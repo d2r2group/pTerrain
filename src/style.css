@@ -1,12 +1,12 @@
 :root {
   /* Phase palette. Regions use the base colour at --region-opacity. Curves use a
-     darker shade with ≥ 3:1 contrast on the background; the solid's is turned 10° towards violet,
-     which lifts its tritanopia ΔE₀₀ from the liquid's to 13.7 (the base colours give 12). */
-  --phase-solid: #7c9be0;
-  --phase-liquid: #5fc4b8;
+     darker shade with ≥ 3:1 contrast on the background; the liquid's is turned 10° towards violet,
+     which lifts its tritanopia ΔE₀₀ from the solid's to 13.7 (the base colours give 12). */
+  --phase-solid: #5fc4b8;
+  --phase-liquid: #7c9be0;
   --phase-vapour: #f2a07b;
-  --curve-solid: #828bd0;
-  --curve-liquid: #369f94;
+  --curve-solid: #369f94;
+  --curve-liquid: #828bd0;
   --curve-vapour: #ca7c59;
   --region-opacity: 0.3;
 
@@ -32,8 +32,8 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   /* The base colours already reach 6.4–8.5 : 1 on the dark background. */
-  --curve-solid: #7c9be0;
-  --curve-liquid: #5fc4b8;
+  --curve-solid: #5fc4b8;
+  --curve-liquid: #7c9be0;
   --curve-vapour: #f2a07b;
   --region-opacity: 0.4;
 
@@ -53,8 +53,8 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     /* The base colours already reach 6.4–8.5 : 1 on the dark background. */
-    --curve-solid: #7c9be0;
-    --curve-liquid: #5fc4b8;
+    --curve-solid: #5fc4b8;
+    --curve-liquid: #7c9be0;
     --curve-vapour: #f2a07b;
     --region-opacity: 0.4;
 
@@ -941,6 +941,23 @@ input {
   border-radius: 0.5rem;
   background: transparent;
   cursor: pointer;
+}
+
+/* On a 412 px phone the two links and the button, with the full gaps and padding, take 376 of
+   the 380 px in Lato, too close for text that renders a little wider elsewhere or in the
+   fallback shown until Lato has loaded, so they tighten: 340 px in Lato, 372 px in Verdana. */
+@media (max-width: 33.5rem) {
+  .site-footer {
+    column-gap: 0.6rem;
+  }
+
+  .model-details-button {
+    padding: 0 0.5rem;
+  }
+
+  .model-details-button .button-math {
+    margin-right: 0.35rem;
+  }
 }
 
 /* The Model Details overlay: a modal dialog whose body scrolls on its own, with no padding on the

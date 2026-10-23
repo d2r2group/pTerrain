@@ -8,6 +8,8 @@ test.beforeEach(async ({ page }) => {
   page.on("pageerror", (err) => seen.push(err.message));
   await page.goto("./");
   await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  // The footer is measured in Lato, not in the fallback that shows until it has loaded.
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
 });
 
 test.afterEach(({ page }) => {
