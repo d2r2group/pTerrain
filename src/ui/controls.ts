@@ -1,5 +1,5 @@
-// The controls. The main row beside the logo: the axis toggle, the
-// triple-point snap and the metastable toggle. Beside or below the plots: the cut slider and
+// The controls. The main row beside the logo: the axis toggle and the triple-point snap. Above
+// the plots: the metastable toggle. Beside or below the plots: the cut slider and
 // number field with the pressure unit, the exaggerated s-l slope checkbox and the readout for
 // screen readers. The substance panel is in substancePanel.ts.
 
@@ -185,7 +185,7 @@ export function createUnitToggle(container: HTMLElement, store: Store): void {
 }
 
 /**
- * The checkbox above the substance menu that switches the plots to the model with an exaggerated
+ * The checkbox above the Parameters panel that switches the plots to the model with an exaggerated
  * s-l slope, unticked at first. While ticked it names the factor; where the line
  * already leans far enough (factor 1) there is nothing to exaggerate, and it is disabled unless
  * already ticked.
@@ -252,8 +252,8 @@ export function createMetastableToggle(container: HTMLElement, store: Store): vo
   button.className = "metastable-toggle";
   const eye = document.createElement("span");
   eye.className = "eye";
-  // The label is hidden on a phone, where the eye alone fits the header's one row, so the name
-  // is set on the button too.
+  // The label is hidden on a phone, where the eye alone leaves the substance menu room, so the
+  // name is set on the button too.
   const label = document.createElement("span");
   label.className = "label";
   label.textContent = "Metastable";

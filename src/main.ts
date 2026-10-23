@@ -24,11 +24,12 @@ import { storedUnit } from "./ui/units";
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("pTerrain: #app element is missing from index.html");
 
-// From top to bottom: the logo and the main row of controls (under the logo on a
-// narrow phone), with the theme button at the far right; then the plots with a column
-// beside them on wide screens, or below on narrow ones: the cut input with the pressure unit, the
-// exaggerated s-l slope checkbox, the readout (for screen readers only) and the substance panel.
-// The footer follows, after <main>.
+// From top to bottom: the logo and the main row of controls, with the theme button at the far
+// right; a bar with the substance menu, the Metastable toggle and Share; then the plots, as wide
+// as the bar, with a column beside both on wide screens, or below on narrow ones: the cut input
+// with the pressure unit, the exaggerated s-l slope checkbox, the readout (for screen readers
+// only) and the substance panel. All four are items of one grid, so that on a narrow phone the
+// header's and the bar's buttons can share a row. The footer follows, after <main>.
 const header = document.createElement("header");
 const mainRow = document.createElement("div");
 mainRow.className = "main-row";
@@ -39,26 +40,30 @@ layout.className = "layout";
 // The diagram and the slice panel are stacked with no gap, so the guide lines run straight on.
 const plots = document.createElement("div");
 plots.className = "plots";
+const plotBar = document.createElement("div");
+plotBar.className = "plot-bar";
+plotBar.setAttribute("role", "group");
+plotBar.setAttribute("aria-label", "Substance, Metastable and Share");
 const diagram = document.createElement("div");
 const slice = document.createElement("div");
 plots.append(diagram, slice);
 const controls = document.createElement("aside");
 controls.className = "controls";
 controls.setAttribute("aria-label", "Cut and substance");
-layout.append(plots, controls);
-app.replaceChildren(header, layout);
+layout.append(header, plotBar, plots, controls);
+app.replaceChildren(layout);
 
 const store = new Store(PRESETS.h2o, "isobar", storedUnit());
 createLogo(header);
 header.append(mainRow);
 createModeToggle(mainRow, store);
 createSnapButton(mainRow, store);
-createMetastableToggle(mainRow, store);
 createThemeToggle(header);
+createMetastableToggle(plotBar, store);
 createCutInput(controls, store);
 createReadout(controls, store);
 createExaggerateToggle(controls, store);
-const substancePanel = createSubstancePanel(controls, store);
+const substancePanel = createSubstancePanel(controls, plotBar, store);
 createPhaseDiagram(diagram, store);
 createSlicePanel(slice, store);
 createFooter(document.body);

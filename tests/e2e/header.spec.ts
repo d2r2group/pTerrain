@@ -62,7 +62,7 @@ test("the main row sits right of the logo, and the substance panel beside the pl
     .evaluateAll((els) =>
       els.map((el) => el.getAttribute("aria-label") ?? el.textContent?.trim() ?? ""),
     );
-  expect(names).toEqual(["constant T", "Snap to triple point", "Metastable"]);
+  expect(names).toEqual(["constant T", "Snap to triple point"]);
   // Every control in the row is the same height.
   const heights = await row
     .locator(":scope > *")
@@ -74,7 +74,7 @@ test("the main row sits right of the logo, and the substance panel beside the pl
     expect(width).toBeGreaterThanOrEqual(44);
     expect(height).toBeGreaterThanOrEqual(44);
   }
-  // The parameter panel starts closed, right under the substance menu.
+  // The parameter panel starts closed.
   await expect(page.locator(".controls .parameters")).not.toHaveAttribute("open");
   // Opened, its fields stay inside the column.
   await page.locator(".parameters summary").click();

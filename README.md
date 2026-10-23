@@ -30,8 +30,8 @@ above it, and the stable transitions are written in bold under the diagram.
   vertical solid–liquid line visibly leans (back for water, forward for CO₂). It
   changes the model, so the slice and values follow; the s-v and l-v lines stay
   put.
-- **Substance** picks H₂O, CO₂ or **Custom**; **Parameters** edits every input
-  and the plot window (fitted automatically while **auto** is ticked). Edits
+- **Substance** picks H₂O, CO₂ or **Custom**, which opens **Parameters**; that
+  edits every input and the plot window (fitted automatically while **auto** is ticked). Edits
   take effect on **Apply**, and only if they pass the validity checks.
 - **Export** / **Import** save and load a substance as JSON; **Share** makes a
   link that opens the same substance and cut (e.g. `#h2o;T,250`).

@@ -84,13 +84,16 @@ body {
   background: var(--bg);
 }
 
+/* A container, so that the header and the bar above the plots compact on the width they have:
+   a media query sees the window, scrollbar included, and would switch about 15 px too late. */
 #app {
+  container: app / inline-size;
   max-width: 76rem;
 }
 
-/* The header: the logo, the main row and the theme button at the far right, on one row; only
-   below 356 px does the main row move under the logo. */
+/* The header: the logo, the main row and the theme button at the far right, on one row. */
 header {
+  grid-area: header;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas: "logo main theme";
@@ -111,38 +114,18 @@ header .theme-toggle {
   grid-area: theme;
 }
 
-/* Below 33.5rem the full header (about 498 px) no longer fits one row, so it compacts to 323 px,
-   which fits a phone of 360 px or wider: a 1.5rem logo, the Metastable eye without its label, and a p | T toggle 44 px wide in
-   all. The toggle is one button, so the whole of it is one 44 px touch target. */
-@media (max-width: 33.5rem) {
+/* Below 23.5rem (376 px) of page width the full header (about 372 px) no longer fits one row, so
+   it compacts to 273 px: a 1.5rem logo and a p | T toggle 44 px wide in all. The toggle is one
+   button, so the whole of it is one 44 px touch target. Below 20.5rem its items rearrange with
+   the bar's (see the bar). */
+@container app (max-width: 23.5rem) {
   header .logo svg {
     height: 1.5rem;
-  }
-
-  .main-row > .metastable-toggle {
-    justify-content: center;
-    min-width: 44px;
-    padding: 0;
-  }
-
-  /* The button keeps "Metastable" as its aria-label. */
-  .metastable-toggle .label {
-    display: none;
   }
 
   .main-row .mode-toggle > span {
     min-width: 21px;
     padding: 0;
-  }
-}
-
-/* Below 356 px even the compact header no longer fits one row: the main row moves under the
-   logo, and the theme button stays on the logo's line. */
-@media (max-width: 22.2rem) {
-  header {
-    grid-template-areas:
-      "logo . theme"
-      "main main main";
   }
 }
 
@@ -251,35 +234,52 @@ input {
   flex: none;
 }
 
-/* The substance row under the plots: the preset menu, then its parameter panel, closed by
-   default. */
-/* The plots and the column with the cut input and the substance panel: side by side on wide
-   screens, and the column under the plots on narrow ones. The plots always stay stacked, so their x axes line up. */
+/* The header, the bar, the plots and the column with the cut input and the substance panel. The
+   column sits beside the bar and the plots on wide screens, and under the plots on narrow ones.
+   The plots always stay stacked, so their x axes line up. The last row takes what the column
+   adds below the plots, so the bar's row keeps its height. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.75rem 1.5rem;
+  grid-template-areas:
+    "header"
+    "bar"
+    "plots"
+    "controls";
+  gap: 0 1.5rem;
   align-items: start;
+}
+
+.plots {
+  grid-area: plots;
+  min-width: 0;
+}
+
+.controls {
+  grid-area: controls;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  margin-top: 0.75rem;
 }
 
 @media (min-width: 60rem) {
   .layout {
     grid-template-columns: minmax(0, 1fr) 19rem;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "header header"
+      "bar controls"
+      "plots controls";
+  }
+
+  .controls {
+    margin-top: 0;
   }
 }
 
-.plots {
-  min-width: 0;
-}
-
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-}
-
-/* The exaggerated s-l slope checkbox, above the substance menu; 44 px high. The
+/* The exaggerated s-l slope checkbox, above the Parameters panel; 44 px high. The
    factor goes on a line of its own under the label, so the narrow column does not wrap both. */
 .exaggerate {
   display: grid;
@@ -440,23 +440,138 @@ input {
   box-sizing: border-box;
 }
 
-/* Substance: preset menu, parameter panel and validation messages. */
+/* Substance: parameter panel and validation messages. */
 .substance {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.substance .preset {
+/* The bar above the plots, as wide as them: the substance menu, filling it up to the
+   Metastable toggle and Share at the right end. Share keeps its width as its label turns to
+   *Copied*. */
+.plot-bar {
+  grid-area: bar;
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  margin-bottom: 0.5rem;
 }
 
-.substance .preset select {
-  flex: 0 1 16rem;
+.plot-bar .preset {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plot-bar select {
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 44px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.375rem;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.plot-bar > button {
+  display: inline-flex;
+  flex: none;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.plot-bar .share {
+  min-width: 6.5rem;
+}
+
+.plot-bar .icon,
+.plot-bar .eye {
+  display: block;
+  flex: none;
+}
+
+/* Metastable and Share icon only together with the compact header, below 23.5rem (376 px) of page
+   width, where the menu is about as wide as Metastable in full (126 px against 130 px). Share is
+   still named by its label, which screen readers keep. */
+@container app (max-width: 23.5rem) {
+  .plot-bar .metastable-toggle,
+  .plot-bar .share {
+    min-width: 44px;
+    padding: 0;
+  }
+
+  /* The button keeps "Metastable" as its aria-label. */
+  .metastable-toggle .label {
+    display: none;
+  }
+
+  .plot-bar .share span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Below 20.5rem (328 px) of page width, a 360 px window, the header and the bar give up their
+   boxes, so that their items join the layout grid: the logo and the theme button on one row, the
+   p | T toggle, the snap button, Metastable and Share under them, all 44 px wide and evenly spread
+   across the page, and the substance menu under those, as wide as the page. */
+@container app (width < 20.5rem) {
+  header,
+  .main-row,
+  .plot-bar {
+    display: contents;
+  }
+
+  .layout {
+    grid-template-columns: 44px 1fr 44px 1fr 44px 1fr 44px;
+    grid-template-areas:
+      "logo logo logo logo logo . theme"
+      "mode . snap . eye . share"
+      "menu menu menu menu menu menu menu"
+      "plots plots plots plots plots plots plots"
+      "controls controls controls controls controls controls controls";
+    row-gap: 0.5rem;
+    column-gap: 0;
+    align-items: center;
+  }
+
+  .mode-toggle {
+    grid-area: mode;
+  }
+
+  .snap {
+    grid-area: snap;
+  }
+
+  .metastable-toggle {
+    grid-area: eye;
+  }
+
+  .plot-bar .share {
+    grid-area: share;
+  }
+
+  .plot-bar .preset {
+    grid-area: menu;
+  }
+
+  .controls {
+    margin-top: 0.25rem;
+  }
 }
 
 .parameters summary {
@@ -541,7 +656,7 @@ input {
   accent-color: var(--fg);
 }
 
-/* Apply, Import, Export and Share, and the name above the Triple point fieldset and as wide, each
+/* Apply, Import and Export, and the name above the Triple point fieldset and as wide, each
    on a row of its own: they take the first column, and the fieldset after them starts the next
    row there. The buttons are styled like the main row's, 44 px high. */
 .parameters .apply,
@@ -574,7 +689,7 @@ input {
   grid-column-start: 1;
 }
 
-/* Import, Export and Share share a row under Apply, together as wide as it. */
+/* Import and Export share a row under Apply, together as wide as it. */
 .parameters .file-actions {
   display: flex;
   gap: 0.5rem;
@@ -643,6 +758,13 @@ input {
   stroke: var(--muted);
   stroke-width: 1;
   shape-rendering: crispEdges;
+}
+
+/* Square ends carry each line half its width past the corner, into the line it meets, so no
+   corner of the frame misses a pixel (the axes have no outer ticks to cover them). */
+.frame,
+.axis .domain {
+  stroke-linecap: square;
 }
 
 /* Phase diagram: the region bitmap sits under the SVG, in the plot area. */

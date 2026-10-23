@@ -13,6 +13,11 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Ships Chromium and its system libraries, so no apt download. Keep the tag equal to
+    # the @playwright/test version in package-lock.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,7 +30,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

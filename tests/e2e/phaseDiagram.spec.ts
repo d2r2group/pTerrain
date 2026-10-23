@@ -425,9 +425,9 @@ const points = (d: string) =>
 test("the exaggerate checkbox switches every plot to the exaggerated model", async ({ page }) => {
   const box = page.getByRole("checkbox", { name: /Exaggerate s-l slope/ });
   await expect(box).not.toBeChecked();
-  // In the column beside the plots, between the cut input and the Substance menu.
+  // In the column beside the plots, between the cut input and the Parameters panel.
   const cutInput = (await page.locator(".cut-input").boundingBox())!;
-  const substance = (await page.locator(".substance .preset").boundingBox())!;
+  const substance = (await page.locator(".parameters summary").boundingBox())!;
   const boxRow = (await page.locator(".exaggerate").boundingBox())!;
   expect(boxRow.y).toBeGreaterThanOrEqual(cutInput.y + cutInput.height);
   expect(boxRow.y + boxRow.height).toBeLessThanOrEqual(substance.y);

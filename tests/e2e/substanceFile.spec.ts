@@ -75,6 +75,13 @@ async function stubClipboard(page: Page) {
     });
   });
 }
+/** Replaces the clipboard on the open page, so that Share copies without permission. */
+async function stubClipboardNow(page: Page) {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "share", { value: undefined });
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: async () => {} } });
+  });
+}
 const copied = (page: Page) =>
   page.evaluate(() => (window as unknown as { copied: string[] }).copied);
 
@@ -87,10 +94,10 @@ test("the name field shows H₂O at first and follows the menu", async ({ page }
   await select(page).selectOption("custom");
   await expect(nameField(page)).toHaveValue("Custom");
   // Under Apply and its buttons, and above the Triple point fieldset, as wide as both.
-  const share = (await page.getByRole("button", { name: "Share" }).boundingBox())!;
+  const exportBox = (await page.getByRole("button", { name: "Export" }).boundingBox())!;
   const row = (await page.locator(".parameters .name-row").boundingBox())!;
   const set = (await page.locator(".parameters fieldset").first().boundingBox())!;
-  expect(share.y + share.height).toBeLessThanOrEqual(row.y);
+  expect(exportBox.y + exportBox.height).toBeLessThanOrEqual(row.y);
   expect(row.y + row.height).toBeLessThanOrEqual(set.y);
   expect(Math.abs(row.width - set.width)).toBeLessThan(1);
 });
@@ -313,11 +320,11 @@ test("a link that can be neither shared nor copied is shown selected", async ({ 
   );
 });
 
-test("Import, Export and Share sit under Apply, as wide as it, and hide with the panel", async ({
+test("Import and Export sit under Apply, as wide as it, and hide with the panel", async ({
   page,
 }) => {
   await open(page);
-  const buttons = ["Import", "Export", "Share"].map((name) => page.getByRole("button", { name }));
+  const buttons = ["Import", "Export"].map((name) => page.getByRole("button", { name }));
   const boxes = await Promise.all(buttons.map(async (b) => (await b.boundingBox())!));
   const apply = (await applyButton(page).boundingBox())!;
   const name = (await page.locator(".parameters .name-row").boundingBox())!;
@@ -328,7 +335,7 @@ test("Import, Export and Share sit under Apply, as wide as it, and hide with the
     expect(Math.abs(box.height - apply.height)).toBeLessThan(1);
   }
   expect(Math.abs(boxes[0]!.x - apply.x)).toBeLessThan(1);
-  expect(Math.abs(boxes[2]!.x + boxes[2]!.width - (apply.x + apply.width))).toBeLessThan(1);
+  expect(Math.abs(boxes[1]!.x + boxes[1]!.width - (apply.x + apply.width))).toBeLessThan(1);
   // Each has an icon, hidden from screen readers, and is named by its text alone; Apply has none.
   for (const button of buttons) {
     await expect(button.locator('svg.icon[aria-hidden="true"]')).toHaveCount(1);
@@ -336,6 +343,66 @@ test("Import, Export and Share sit under Apply, as wide as it, and hide with the
   await expect(applyButton(page).locator("svg")).toHaveCount(0);
   await page.locator(".parameters summary").click();
   for (const button of buttons) await expect(button).toBeHidden();
+});
+
+test("the menu and Share sit above the plots, as wide as them, with Share at the right", async ({
+  page,
+}) => {
+  await open(page);
+  await page.locator(".parameters summary").click();
+  const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+  const share = page.getByRole("button", { name: "Share" });
+  await expect(share).toBeVisible();
+  await expect(share.locator('svg.icon[aria-hidden="true"]')).toHaveCount(1);
+  const bar = await box(".plot-bar");
+  const plots = await box(".plots");
+  const diagram = await box(".phase-diagram");
+  const shareBox = (await share.boundingBox())!;
+  const menu = (await select(page).boundingBox())!;
+  expect(Math.abs(bar.x - plots.x)).toBeLessThan(1);
+  expect(Math.abs(bar.width - plots.width)).toBeLessThan(1);
+  expect(bar.y + bar.height).toBeLessThanOrEqual(diagram.y);
+  expect(Math.abs(menu.x - bar.x)).toBeLessThan(1);
+  // The menu fills the bar up to Metastable, then Share, each 0.5rem apart.
+  const eyeButton = page.getByRole("button", { name: "Metastable" });
+  const eyeBox = (await eyeButton.boundingBox())!;
+  expect(Math.abs(eyeBox.x - (menu.x + menu.width) - 8)).toBeLessThan(1);
+  expect(Math.abs(shareBox.x - (eyeBox.x + eyeBox.width) - 8)).toBeLessThan(1);
+  expect(Math.abs(shareBox.x + shareBox.width - (bar.x + bar.width))).toBeLessThan(1);
+  // No "Substance" text beside the menu, which keeps it as its name.
+  await expect(page.locator(".plot-bar")).not.toContainText("Substance");
+  // Copied keeps the width.
+  await stubClipboardNow(page);
+  await share.click();
+  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  expect((await page.locator(".plot-bar .share").boundingBox())!.width).toBeCloseTo(
+    shareBox.width,
+    0,
+  );
+  // Both keep their labels until the header compacts, below 23.5rem (376 px) of page width,
+  // 408 px of window. Then Share shows the icon alone, still named Share, and Metastable the eye
+  // alone, both 44 px square, as the logo shrinks.
+  await expect(share).toBeVisible({ timeout: 3000 });
+  const label = page.locator(".metastable-toggle .label");
+  const logoHeight = async () => (await page.locator("header .logo svg").boundingBox())!.height;
+  await page.setViewportSize({ width: 409, height: 700 });
+  await expect(label).toBeVisible();
+  expect((await share.boundingBox())!.width).toBeCloseTo(shareBox.width, 0);
+  expect(await logoHeight()).toBeCloseTo(36, 0);
+  await page.setViewportSize({ width: 408, height: 700 });
+  await expect(label).toBeHidden();
+  expect(await logoHeight()).toBeCloseTo(24, 0);
+  for (const button of [share, eyeButton]) {
+    const { width, height } = (await button.boundingBox())!;
+    expect(width).toBeCloseTo(44, 0);
+    expect(height).toBeCloseTo(44, 0);
+  }
+  // A classic scrollbar narrows the page, not the window; 15 px of padding stand in for one, as
+  // headless Chromium's scrollbars overlay the page. At 420 px both are compact already.
+  await page.addStyleTag({ content: "body { padding-right: calc(1rem + 15px) }" });
+  await page.setViewportSize({ width: 420, height: 700 });
+  await expect(label).toBeHidden();
+  expect((await share.boundingBox())!.width).toBeCloseTo(44, 0);
 });
 
 test.describe("on a phone", () => {

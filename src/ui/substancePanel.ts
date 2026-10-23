@@ -1,6 +1,6 @@
-// The substance panel: the preset menu and the parameter fields with their Apply
-// button, name and automatic window, Import, Export and Share, and the warning that lists the
-// failed validity checks.
+// The substance panel: the preset menu and Share in the bar above the plots, and the parameter
+// fields with their Apply button, name and automatic window, Import, Export, and the warning that
+// lists the failed validity checks.
 
 import { autoWindow } from "../physics/autoWindow";
 import type { Params, PlotWindow } from "../physics/gibbs";
@@ -75,19 +75,24 @@ export interface SubstancePanel {
 }
 
 /**
- * The preset menu and the parameter panel. Choosing Custom loads
- * the schematic substance `CUSTOM` as a starting point for edits. The menu applies at once and
+ * The preset menu and Share, first and last in `bar`, and the parameter panel, in `container`.
+ * Choosing Custom loads the schematic substance `CUSTOM` as a starting point for edits, opens the
+ * parameter panel and, where it sits under the plots, scrolls to it. The menu applies at once and
  * discards unapplied edits; the fields apply only through the Apply button (or Enter), which is
  * enabled while they or the *auto* box differ from what is applied. Apply runs `validate`: if it
- * fails, the fields keep what was typed, a warning lists the failed checks, and the
- * plots keep the last valid substance. While *auto* is ticked the window fields are disabled and
- * show the applied window, and Apply replaces the window with `autoWindow`. Pressures are shown in
- * the chosen unit, but a field that is not edited keeps its exact kPa value, so a unit change does
- * not turn a preset into Custom through rounding. The *Name* field is an edit like the others;
- * Export, Share and Import write and read the applied substance as a file or a
- * link, and an import is applied as Apply would be, with the cuts reset.
+ * fails, the fields keep what was typed, a warning lists the failed checks, and the plots keep the
+ * last valid substance. While *auto* is ticked the window fields are disabled and show the applied
+ * window, and Apply replaces the window with `autoWindow`. Pressures are shown in the chosen unit,
+ * but a field that is not edited keeps its exact kPa value, so a unit change does not turn a preset
+ * into Custom through rounding. The *Name* field is an edit like the others; Export, Share and
+ * Import write and read the applied substance as a file or a link, and an import is applied as
+ * Apply would be, with the cuts reset.
  */
-export function createSubstancePanel(container: HTMLElement, store: Store): SubstancePanel {
+export function createSubstancePanel(
+  container: HTMLElement,
+  bar: HTMLElement,
+  store: Store,
+): SubstancePanel {
   const root = document.createElement("section");
   root.className = "substance";
   root.setAttribute("aria-label", "Substance");
@@ -101,7 +106,8 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
   // While it is selected, the Custom option reads the applied name.
   const customOption = new Option(CUSTOM.name, "custom");
   select.append(customOption);
-  presetLabel.append("Substance ", select);
+  select.setAttribute("aria-label", "Substance");
+  presetLabel.append(select);
 
   const details = document.createElement("details");
   details.className = "parameters";
@@ -123,7 +129,7 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
   apply.textContent = "Apply";
   apply.title = "Redraw the plots with the edited parameters";
   apply.disabled = true;
-  // Import, Export and Share side by side under Apply, together as wide as it.
+  // Import and Export side by side under Apply, together as wide as it.
   const actions = document.createElement("div");
   actions.className = "file-actions";
   const actionButton = (body: string, text: string, title: string) => {
@@ -139,11 +145,6 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
     DOWNLOAD,
     "Export",
     "Save the applied substance as a JSON file",
-  );
-  const shareButton = actionButton(
-    SHARE,
-    "Share",
-    "Share a link to the applied substance and this view",
   );
   const picker = document.createElement("input");
   picker.type = "file";
@@ -205,8 +206,16 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
   const warning = document.createElement("div");
   warning.className = "validation";
   warning.setAttribute("role", "alert");
-  root.append(presetLabel, details, warning);
+  root.append(details, warning);
   container.append(root);
+  // The menu at the bar's start and Share at its end, around what the bar already holds.
+  const shareButton = document.createElement("button");
+  shareButton.type = "button";
+  shareButton.className = "share";
+  setLabel(shareButton, SHARE, "Share");
+  shareButton.title = "Share a link to the applied substance and this view";
+  bar.prepend(presetLabel);
+  bar.append(shareButton);
 
   const keys = Object.keys(inputs) as FieldKey[];
 
@@ -333,6 +342,15 @@ export function createSubstancePanel(container: HTMLElement, store: Store): Subs
     store.setSubstance(preset.params, preset.window, { resetCuts: true });
     setAuto(appliedAuto);
     syncApply();
+    if (select.value !== "custom") return;
+    // Custom is a starting point for edits, so its fields open; under the plots, where they are
+    // out of sight, the page scrolls to them. They are under the plots when they start left of
+    // the menu's end (the bar itself has no box on a narrow phone).
+    details.open = true;
+    if (details.getBoundingClientRect().left < select.getBoundingClientRect().right) {
+      const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+      details.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+    }
   });
 
   auto.addEventListener("change", () => {

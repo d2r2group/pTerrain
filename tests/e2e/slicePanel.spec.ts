@@ -333,3 +333,10 @@ test("both y-axis labels sit on one vertical line, 4 px left of the widest tick 
   await check();
   expect((await read())[1]!.left).toBeLessThan(before - 5);
 });
+
+test("no axis has outer ticks: its line is one straight segment", async ({ page }) => {
+  const lines = page.locator(".phase-diagram .axis .domain, .slice-panel .axis .domain");
+  await expect(lines).toHaveCount(4);
+  for (const d of await lines.evaluateAll((els) => els.map((el) => el.getAttribute("d") ?? "")))
+    expect(d).toMatch(/^M[^A-Z]+[HV][^A-Z]+$/);
+});

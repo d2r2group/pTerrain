@@ -81,6 +81,37 @@ test("the preset menu switches the substance and resets the cuts", async ({ page
   expect(await value(page)).toBeCloseTo(Math.sqrt(517.964 * 2500), 9);
 });
 
+test("choosing Custom opens the parameters, and scrolls to them only under the plots", async ({
+  page,
+}) => {
+  const select = page.getByRole("combobox", { name: "Substance" });
+  const details = page.locator(".parameters");
+  // Reduced motion scrolls at once, so a smooth scroll cannot still run into the next check.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const [width, under] of [
+    [1280, false],
+    [800, true],
+    [320, true],
+  ] as const) {
+    await page.setViewportSize({ width, height: 700 });
+    await page.goto("./");
+    await expect(page.locator(".phase-diagram svg")).toBeVisible();
+    await expect(details).not.toHaveAttribute("open");
+    await select.selectOption("custom");
+    await expect(details).toHaveAttribute("open");
+    if (under) {
+      expect(Math.abs((await details.boundingBox())!.y), `${width}`).toBeLessThan(1);
+    } else {
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    }
+    // A preset neither closes them nor scrolls.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await select.selectOption("co2");
+    await expect(details).toHaveAttribute("open");
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  }
+});
+
 test("choosing Custom loads the schematic substance as a starting point", async ({ page }) => {
   const select = page.getByRole("combobox", { name: "Substance" });
   await select.selectOption("custom");

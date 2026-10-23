@@ -62,9 +62,7 @@ test("the header fits one row, the controls sit below the plots, and nothing scr
   // The axis toggle stays above the diagram, so switching needs no scroll.
   const toggle = (await page.locator(".mode-toggle").boundingBox())!;
   expect(toggle.y + toggle.height).toBeLessThanOrEqual(diagram.y);
-  // The compact header: the logo, the main row and the theme button on one row, inside
-  // the viewport. The Metastable eye drops its label, which stays its accessible name (aria-label), and the
-  // p | T toggle is 44 px wide in all, since either half switches the mode.
+  // The header: the logo, the main row and the theme button on one row, inside the viewport.
   const headerItems = page.locator("header .logo, .main-row > *, header .theme-toggle");
   const boxes = await headerItems.evaluateAll((els) =>
     els.map((el) => {
@@ -72,15 +70,22 @@ test("the header fits one row, the controls sit below the plots, and nothing scr
       return { left: r.left, right: r.right, centre: r.top + r.height / 2 };
     }),
   );
-  expect(boxes).toHaveLength(5);
+  expect(boxes).toHaveLength(4);
   for (const b of boxes) expect(Math.abs(b.centre - boxes[0]!.centre)).toBeLessThan(3);
   for (let k = 1; k < boxes.length; k++)
     expect(boxes[k]!.left).toBeGreaterThan(boxes[k - 1]!.right);
   expect(boxes.at(-1)!.right).toBeLessThanOrEqual(viewport.width);
-  expect(toggle.width).toBe(44);
+  // Above the plots, the menu, Metastable and Share on one row; the menu still at least as wide as
+  // Metastable, which keeps its label.
   const metastable = page.getByRole("button", { name: "Metastable" });
-  expect((await metastable.boundingBox())!.width).toBe(44);
-  await expect(metastable.locator(".label")).toBeHidden();
+  const eye = (await metastable.boundingBox())!;
+  const menu = (await page.locator(".plot-bar select").boundingBox())!;
+  const share = (await page.getByRole("button", { name: "Share" }).boundingBox())!;
+  expect(eye.y + eye.height).toBeLessThanOrEqual(diagram.y);
+  expect(Math.abs(menu.y - share.y)).toBeLessThan(1);
+  expect(menu.width).toBeGreaterThanOrEqual(eye.width);
+  expect(share.x + share.width).toBeLessThanOrEqual(viewport.width);
+  await expect(metastable.locator(".label")).toBeVisible();
   const [scrollWidth, innerWidth] = await page.evaluate(() => [
     document.documentElement.scrollWidth,
     window.innerWidth,
@@ -88,9 +93,15 @@ test("the header fits one row, the controls sit below the plots, and nothing scr
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
 });
 
-test("the compact header fits one row down to 360 px; narrower, the main row moves under the logo", async ({
+test("the compact header fits one row down to 360 px; narrower, the buttons share a row under it", async ({
   page,
 }) => {
+  // Below 408 px the header is compact: a smaller logo and a p | T toggle 44 px wide in all,
+  // since either half switches the mode.
+  await page.setViewportSize({ width: 400, height: 800 });
+  expect((await page.locator(".mode-toggle").boundingBox())!.width).toBe(44);
+  const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+  const buttons = [".mode-toggle", ".snap", ".metastable-toggle", ".plot-bar .share"];
   await page.setViewportSize({ width: 360, height: 800 });
   const centres = await page
     .locator("header .logo, .main-row > *, header .theme-toggle")
@@ -101,15 +112,39 @@ test("the compact header fits one row down to 360 px; narrower, the main row mov
       }),
     );
   for (const c of centres) expect(Math.abs(c - centres[0]!)).toBeLessThan(3);
+  // Metastable and Share are still right of the menu.
+  const menu = await box(".plot-bar select");
+  expect(Math.abs((await box(".metastable-toggle")).y - menu.y)).toBeLessThan(1);
 
-  await page.setViewportSize({ width: 340, height: 800 });
-  const logo = (await page.locator(".logo").boundingBox())!;
-  const row = (await page.locator(".main-row").boundingBox())!;
-  expect(row.y).toBeGreaterThanOrEqual(logo.y + logo.height);
-  const theme = (await page.getByRole("button", { name: /Switch to/ }).boundingBox())!;
-  expect(theme.y).toBeLessThan(row.y);
-  expect(theme.x + theme.width).toBeLessThanOrEqual(340);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(340);
+  // Narrower: the logo and the theme button; the four buttons, evenly spread over the page; the
+  // menu, as wide as the page; then the plots.
+  for (const width of [359, 320, 280]) {
+    await page.setViewportSize({ width, height: 800 });
+    const logo = await box(".logo");
+    const theme = await box("header .theme-toggle");
+    const plots = await box(".plots");
+    const select = await box(".plot-bar select");
+    const row = await Promise.all(buttons.map(box));
+    expect(Math.abs(theme.y + theme.height / 2 - (logo.y + logo.height / 2))).toBeLessThan(3);
+    expect(Math.abs(logo.x - plots.x), `${width}`).toBeLessThan(1);
+    expect(Math.abs(theme.x + theme.width - (plots.x + plots.width))).toBeLessThan(1);
+    for (const b of row) {
+      expect(b.width).toBe(44);
+      expect(b.y).toBeGreaterThanOrEqual(Math.max(logo.y + logo.height, theme.y + theme.height));
+      expect(Math.abs(b.y - row[0]!.y)).toBeLessThan(1);
+    }
+    expect(Math.abs(row[0]!.x - plots.x)).toBeLessThan(1);
+    expect(Math.abs(row[3]!.x + row[3]!.width - (plots.x + plots.width))).toBeLessThan(1);
+    const gaps = row.slice(1).map((b, k) => b.x - row[k]!.x);
+    for (const g of gaps) expect(Math.abs(g - gaps[0]!), `${width}`).toBeLessThan(1);
+    expect(select.y).toBeGreaterThanOrEqual(row[0]!.y + row[0]!.height);
+    expect(Math.abs(select.x - plots.x)).toBeLessThan(1);
+    expect(Math.abs(select.width - plots.width)).toBeLessThan(1);
+    expect(plots.y).toBeGreaterThanOrEqual(select.y + select.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width,
+    );
+  }
 });
 
 test("a finger drags the cut line without scrolling the page", async ({ page }) => {

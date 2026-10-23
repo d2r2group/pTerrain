@@ -341,15 +341,17 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
       g.attr("transform", `translate(${MARGIN.left},${MARGIN.top + size.height})`);
     }
     // Tick marks only: the slice panel's top axis right under this one carries the numbers, so
-    // the row under the diagram is left to the bold transition values.
+    // the row under the diagram is left to the bold transition values. No outer ticks on either
+    // axis: an end of the window gets a tick only where it is a major one.
     xAxis.call(
       axisBottom(x.scale)
         .tickValues(x.ticks)
-        .tickFormat(() => ""),
+        .tickFormat(() => "")
+        .tickSizeOuter(0),
     );
     yAxis
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-      .call(axisLeft(y.scale).tickValues(y.ticks).tickFormat(y.format));
+      .call(axisLeft(y.scale).tickValues(y.ticks).tickFormat(y.format).tickSizeOuter(0));
     xLabel
       .attr("x", MARGIN.left + size.width / 2)
       .attr("y", MARGIN.top + size.height + MARGIN.bottom - 6);

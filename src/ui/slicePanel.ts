@@ -62,9 +62,12 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     const y = scaleLinear()
       .domain(gDomain(cut, params, window, half, found))
       .range([size.height, 0]);
-    yAxis
-      .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-      .call(axisLeft(y).ticks(Math.max(2, Math.floor(size.height / 50))));
+    // No outer ticks, as on the diagram: an end of an axis gets a tick only where it is a major one.
+    yAxis.attr("transform", `translate(${MARGIN.left},${MARGIN.top})`).call(
+      axisLeft(y)
+        .ticks(Math.max(2, Math.floor(size.height / 50)))
+        .tickSizeOuter(0),
+    );
     placeYLabel(yLabel.node()!, yAxis.node()!, size.height, MARGIN);
     const path = line<[number, number]>(
       ([u]) => x(u),
@@ -144,7 +147,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     );
     xAxis
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-      .call(axisTop(x.scale).tickValues(x.ticks).tickFormat(x.format));
+      .call(axisTop(x.scale).tickValues(x.ticks).tickFormat(x.format).tickSizeOuter(0));
     drawSlice();
   };
 
