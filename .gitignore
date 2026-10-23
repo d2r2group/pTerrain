@@ -1,0 +1,27 @@
+# Dependencies (restored by `npm ci`)
+node_modules/
+
+# Build output (`npm run build`; CI rebuilds and deploys it)
+dist/
+
+# Test output (Playwright; CI uploads test-results/ as an artifact)
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# Tool caches, logs, local env
+.vite/
+*.log
+.env*.local
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Playwright browser cache
+playwright/.cache/
+
+# Design notes, kept locally only
+plan.md
