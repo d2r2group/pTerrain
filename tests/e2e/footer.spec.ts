@@ -26,7 +26,7 @@ async function openDialog(page: Page) {
 const scrollsSideways = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 
-test("the footer comes after the plots and the controls column, with the link, the button and the copyright", async ({
+test("the footer comes after the plots and the controls column, with the links, the button and the copyright", async ({
   page,
 }) => {
   const footer = page.getByRole("contentinfo");
@@ -52,6 +52,13 @@ test("the footer comes after the plots and the controls column, with the link, t
     return range.getBoundingClientRect().left;
   });
   expect(globeBox.x + globeBox.width).toBeLessThanOrEqual(text);
+  // The source on GitHub, after the group's site, with the GitHub mark.
+  const github = footer.getByRole("link", { name: "GitHub" });
+  await expect(github).toHaveAttribute("href", "https://github.com/d2r2group/pTerrain");
+  await expect(github).toHaveAttribute("target", "_blank");
+  await expect(github).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(github.locator("svg.icon")).toHaveAttribute("aria-hidden", "true");
+  expect((await github.boundingBox())!.x).toBeGreaterThan(globeBox.x);
   await expect(footer.getByRole("button", { name: "Model Details" })).toBeVisible();
   await expect(footer.locator(".copyright")).toHaveText("2026 © Peter Schindler");
   // The button is a full touch target.
@@ -150,10 +157,12 @@ test.describe("on a phone", () => {
   test("the footer and the dialog cause no sideways scroll", async ({ page }) => {
     const footer = page.getByRole("contentinfo");
     await footer.scrollIntoViewIfNeeded();
-    // The link and the button fit on one line.
-    const link = (await footer.getByRole("link").boundingBox())!;
+    // The two links and the button fit on one line.
     const button = (await openButton(page).boundingBox())!;
-    expect(Math.abs(link.y + link.height / 2 - (button.y + button.height / 2))).toBeLessThan(2);
+    for (const link of await footer.getByRole("link").all()) {
+      const b = (await link.boundingBox())!;
+      expect(Math.abs(b.y + b.height / 2 - (button.y + button.height / 2))).toBeLessThan(2);
+    }
     expect(await scrollsSideways(page)).toBe(false);
     await openButton(page).tap();
     await expect(dialog(page)).toBeVisible();

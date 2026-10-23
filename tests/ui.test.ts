@@ -609,7 +609,7 @@ describe("plot size", () => {
     expect(plotHeight(200)).toBe(160);
     expect(plotHeight(1000)).toBe(360);
     // Same container width, same plot area, so the diagram and the slice panel match.
-    const width = plotWidth(800);
+    const width = plotWidth(600);
     expect(plotHeight(width)).toBe(Math.round(width / 2));
   });
 

@@ -62,19 +62,17 @@ test("the header fits one row, the controls sit below the plots, and nothing scr
   // The axis toggle stays above the diagram, so switching needs no scroll.
   const toggle = (await page.locator(".mode-toggle").boundingBox())!;
   expect(toggle.y + toggle.height).toBeLessThanOrEqual(diagram.y);
-  // The compact header: the logo, GitHub, the main row and the theme button on one row, inside
+  // The compact header: the logo, the main row and the theme button on one row, inside
   // the viewport. The Metastable eye drops its label, which stays its accessible name (aria-label), and the
   // p | T toggle is 44 px wide in all, since either half switches the mode.
-  const headerItems = page.locator(
-    "header .logo, header .repo-link, .main-row > *, header .theme-toggle",
-  );
+  const headerItems = page.locator("header .logo, .main-row > *, header .theme-toggle");
   const boxes = await headerItems.evaluateAll((els) =>
     els.map((el) => {
       const r = el.getBoundingClientRect();
       return { left: r.left, right: r.right, centre: r.top + r.height / 2 };
     }),
   );
-  expect(boxes).toHaveLength(6);
+  expect(boxes).toHaveLength(5);
   for (const b of boxes) expect(Math.abs(b.centre - boxes[0]!.centre)).toBeLessThan(3);
   for (let k = 1; k < boxes.length; k++)
     expect(boxes[k]!.left).toBeGreaterThan(boxes[k - 1]!.right);
@@ -90,21 +88,28 @@ test("the header fits one row, the controls sit below the plots, and nothing scr
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
 });
 
-test("on a narrower phone the main row moves under the logo, and nothing scrolls sideways", async ({
+test("the compact header fits one row down to 360 px; narrower, the main row moves under the logo", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 375, height: 812 });
+  await page.setViewportSize({ width: 360, height: 800 });
+  const centres = await page
+    .locator("header .logo, .main-row > *, header .theme-toggle")
+    .evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      }),
+    );
+  for (const c of centres) expect(Math.abs(c - centres[0]!)).toBeLessThan(3);
+
+  await page.setViewportSize({ width: 340, height: 800 });
   const logo = (await page.locator(".logo").boundingBox())!;
   const row = (await page.locator(".main-row").boundingBox())!;
   expect(row.y).toBeGreaterThanOrEqual(logo.y + logo.height);
-  for (const name of ["Source on GitHub", /Switch to/]) {
-    const b = (await page
-      .getByRole(name === "Source on GitHub" ? "link" : "button", { name })
-      .boundingBox())!;
-    expect(b.y).toBeLessThan(row.y);
-    expect(b.x + b.width).toBeLessThanOrEqual(375);
-  }
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  const theme = (await page.getByRole("button", { name: /Switch to/ }).boundingBox())!;
+  expect(theme.y).toBeLessThan(row.y);
+  expect(theme.x + theme.width).toBeLessThanOrEqual(340);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(340);
 });
 
 test("a finger drags the cut line without scrolling the page", async ({ page }) => {

@@ -82,33 +82,21 @@ test("the main row sits right of the logo, and the substance panel beside the pl
   expect(form.x + form.width).toBeLessThanOrEqual(cutInput.x + cutInput.width + 0.5);
 });
 
-test("the GitHub button sits between the logo and the main row, the theme button at the far right, both borderless and 44 px square", async ({
-  page,
-}) => {
+test("the theme button sits at the far right, borderless and 44 px square", async ({ page }) => {
   await open(page);
-  const github = page.getByRole("link", { name: "Source on GitHub" });
+  await expect(page.locator("header a")).toHaveCount(0);
   const theme = page.getByRole("button", { name: /Switch to (dark|light) theme/ });
-  await expect(github).toHaveAttribute("href", "https://github.com/d2r2group/pTerrain");
-  await expect(github).toHaveAttribute("target", "_blank");
-  await expect(github).toHaveAttribute("rel", "noopener noreferrer");
-  const g = (await github.boundingBox())!;
   const t = (await theme.boundingBox())!;
-  const logo = (await page.locator(".logo").boundingBox())!;
   const row = page.locator(".main-row");
   const first = (await row.locator(":scope > *").first().boundingBox())!;
   const last = (await row.locator(":scope > *").last().boundingBox())!;
   const header = (await page.locator("header").boundingBox())!;
-  for (const b of [g, t]) {
-    expect(b.width).toBe(44);
-    expect(b.height).toBe(44);
-  }
-  for (const el of [github, theme]) await expect(el).toHaveCSS("border-top-width", "0px");
-  expect(g.x).toBeGreaterThanOrEqual(logo.x + logo.width);
-  expect(g.x + g.width).toBeLessThanOrEqual(first.x);
+  expect(t.width).toBe(44);
+  expect(t.height).toBe(44);
+  await expect(theme).toHaveCSS("border-top-width", "0px");
   expect(last.x + last.width).toBeLessThanOrEqual(t.x);
   expect(t.x + t.width).toBeCloseTo(header.x + header.width, 0);
-  for (const b of [g, t])
-    expect(Math.abs(b.y + b.height / 2 - (first.y + first.height / 2))).toBeLessThan(1);
+  expect(Math.abs(t.y + t.height / 2 - (first.y + first.height / 2))).toBeLessThan(1);
 });
 
 test("the main row stays on the logo's line, left-aligned, on any screen wide enough for it", async ({
@@ -118,7 +106,6 @@ test("the main row stays on the logo's line, left-aligned, on any screen wide en
     await page.setViewportSize({ width, height: 800 });
     await open(page);
     const logo = (await page.locator(".logo").boundingBox())!;
-    const github = (await page.getByRole("link", { name: "Source on GitHub" }).boundingBox())!;
     const theme = (await page.getByRole("button", { name: /Switch to/ }).boundingBox())!;
     const row = page.locator(".main-row");
     const rowBox = (await row.boundingBox())!;
@@ -127,8 +114,8 @@ test("the main row stays on the logo's line, left-aligned, on any screen wide en
       Math.abs(rowBox.y + rowBox.height / 2 - (logo.y + logo.height / 2)),
       `${width}`,
     ).toBeLessThan(6);
-    // Left-aligned: the row starts one gap (0.75rem) right of the GitHub button, not centred.
-    expect(first.x - (github.x + github.width), `${width}`).toBeCloseTo(12, 0);
+    // Left-aligned: the row starts one gap (0.75rem) right of the logo, not centred.
+    expect(first.x - (logo.x + logo.width), `${width}`).toBeCloseTo(12, 0);
     const last = (await row.locator(":scope > *").last().boundingBox())!;
     expect(last.x + last.width, `${width}`).toBeLessThanOrEqual(theme.x);
     // One line of buttons: every control in the row has the same centre.

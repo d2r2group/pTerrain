@@ -15,7 +15,6 @@ import {
 import { createLogo } from "./ui/logo";
 import { createFooter } from "./ui/modelDetails";
 import { createPhaseDiagram } from "./ui/phaseDiagram";
-import { createRepoLink } from "./ui/repoLink";
 import { createSlicePanel } from "./ui/slicePanel";
 import { Store } from "./ui/state";
 import { createSubstancePanel } from "./ui/substancePanel";
@@ -25,8 +24,8 @@ import { storedUnit } from "./ui/units";
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("pTerrain: #app element is missing from index.html");
 
-// From top to bottom: the logo, the GitHub button and the main row of controls (under
-// the logo on a phone), with the theme button at the far right; then the plots with a column
+// From top to bottom: the logo and the main row of controls (under the logo on a
+// narrow phone), with the theme button at the far right; then the plots with a column
 // beside them on wide screens, or below on narrow ones: the cut input with the pressure unit, the
 // exaggerated s-l slope checkbox, the readout (for screen readers only) and the substance panel.
 // The footer follows, after <main>.
@@ -51,7 +50,6 @@ app.replaceChildren(header, layout);
 
 const store = new Store(PRESETS.h2o, "isobar", storedUnit());
 createLogo(header);
-createRepoLink(header);
 header.append(mainRow);
 createModeToggle(mainRow, store);
 createSnapButton(mainRow, store);

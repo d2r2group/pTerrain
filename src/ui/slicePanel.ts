@@ -16,7 +16,7 @@ import {
 } from "../physics/slice";
 import { AXIS_LABELS, setAxisLabel } from "./labels";
 import { frameBottomRight, SLICE_MARGIN, type PlotSize } from "./geometry";
-import { attachPanel, fitSvg } from "./panel";
+import { attachPanel, fitSvg, placeYLabel } from "./panel";
 import { cutOf, type Store } from "./state";
 import { axisSpec, formatPressure, formatTemperature } from "./units";
 
@@ -65,6 +65,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     yAxis
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
       .call(axisLeft(y).ticks(Math.max(2, Math.floor(size.height / 50))));
+    placeYLabel(yLabel.node()!, yAxis.node()!, size.height, MARGIN);
     const path = line<[number, number]>(
       ([u]) => x(u),
       ([, G]) => y(G),
@@ -144,7 +145,6 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     xAxis
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
       .call(axisTop(x.scale).tickValues(x.ticks).tickFormat(x.format));
-    yLabel.attr("transform", `translate(14,${MARGIN.top + size.height / 2}) rotate(-90)`);
     drawSlice();
   };
 

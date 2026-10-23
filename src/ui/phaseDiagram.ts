@@ -32,7 +32,7 @@ import {
   type Box,
   type PhaseLabel,
 } from "./labels";
-import { attachPanel, fitSvg } from "./panel";
+import { attachPanel, fitSvg, placeYLabel } from "./panel";
 import { cutBounds, cutFor, type Mode, type State, type Store } from "./state";
 import { PHASE_NAME } from "./substanceFields";
 import { onThemeChange } from "./theme";
@@ -354,8 +354,8 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
       .attr("x", MARGIN.left + size.width / 2)
       .attr("y", MARGIN.top + size.height + MARGIN.bottom - 6);
     setAxisLabel(xLabel.node() as SVGTextElement, AXIS_LABELS[across](unit));
-    yLabel.attr("transform", `translate(14,${MARGIN.top + size.height / 2}) rotate(-90)`);
     setAxisLabel(yLabel.node() as SVGTextElement, AXIS_LABELS[up](unit));
+    placeYLabel(yLabel.node()!, yAxis.node()!, size.height, MARGIN);
   };
 
   const drawCut = () => {
@@ -568,8 +568,8 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
     if (size.width > 0) paintRegions();
   });
 
-  // The names and the bold values are sized from their measured text, so once Lato has loaded
-  // (it swaps in for a fallback font) they are measured and placed again.
+  // The names, the bold values and both panels' y-axis labels are placed from measured text, so
+  // once Lato has loaded (it swaps in for a fallback font) they are measured and placed again.
   void document.fonts?.ready.then(() => {
     if (size.width === 0) return;
     labelsFor = { state: null, size };

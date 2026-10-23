@@ -8,9 +8,10 @@ import { cutBounds, fromCutAxis, toCutAxis, type Mode } from "./state";
 
 /**
  * Fixed margins around the plot area, in CSS px. They are not fitted to the tick labels, so the
- * slice panel under the diagram can share the same left edge and width.
+ * slice panel under the diagram can share the same left edge and width. The right margin holds
+ * the cut handle's 11 px knob; the left one the y tick labels and the axis label beside them.
  */
-export const MARGIN = { top: 12, right: 20, bottom: 44, left: 60 } as const;
+export const MARGIN = { top: 12, right: 13, bottom: 44, left: 50 } as const;
 
 /**
  * The slice panel's margins. Its x axis runs along the top, so the tick labels sit above the plot

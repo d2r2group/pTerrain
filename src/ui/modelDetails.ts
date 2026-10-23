@@ -1,4 +1,4 @@
-// The footer and the Model Details overlay: a link to the group's site and a
+// The footer and the Model Details overlay: links to the group's site and the source, and a
 // button that opens a modal <dialog> with a condensed account of the model. The math is
 // written in TeX in tagged templates, tex (inline) and display, which scripts/renderMath.mjs
 // renders to SVG beforehand (src/assets/math.json), so the page loads no math library or font.
@@ -7,6 +7,7 @@
 import MATH from "../assets/math.json";
 import { PRESETS, type PresetId } from "../physics/presets";
 import { GLOBE, icon } from "./icons";
+import { createRepoLink } from "./repoLink";
 import { FIELD_GROUPS, substanceValues, type FieldKey } from "./substanceFields";
 
 /** A formula as rendered by scripts/renderMath.mjs; `npm run math` adds new ones. */
@@ -217,9 +218,9 @@ iteration under the author's supervision.</p>`;
 }
 
 /**
- * The footer after the plots and their controls: a link to d2r2group.com, with a globe, the Model
- * Details button, which opens the overlay, and the copyright line. Esc, the × button and a click on the backdrop close it, and
- * focus returns to the button.
+ * The footer after the plots and their controls: a link to d2r2group.com, with a globe, one to
+ * the source on GitHub, the Model Details button, which opens the overlay, and the copyright
+ * line. Esc, the × button and a click on the backdrop close it, and focus returns to the button.
  */
 export function createFooter(container: HTMLElement): void {
   const footer = document.createElement("footer");
@@ -245,7 +246,7 @@ export function createFooter(container: HTMLElement): void {
   const copyright = document.createElement("span");
   copyright.className = "copyright";
   copyright.textContent = "2026 © Peter Schindler";
-  footer.append(link, button, copyright, glyphs);
+  footer.append(link, createRepoLink(), button, copyright, glyphs);
 
   const dialog = document.createElement("dialog");
   dialog.className = "model-details";

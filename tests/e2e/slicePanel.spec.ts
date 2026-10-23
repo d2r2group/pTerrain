@@ -299,3 +299,37 @@ test("the panel is shaded under the envelope in the stable phase's colour", asyn
     await page.getByRole("button", { name: "Metastable" }).click();
   }
 });
+
+test("both y-axis labels sit on one vertical line, 4 px left of the widest tick label", async ({
+  page,
+}) => {
+  const read = () =>
+    page.evaluate(() =>
+      [".phase-diagram", ".slice-panel"].map((panel) => {
+        const label = document.querySelector(`${panel} .y-label`)!.getBoundingClientRect();
+        const ticks = [...document.querySelectorAll(`${panel} .y-axis .tick text`)];
+        return {
+          left: label.left,
+          right: label.right,
+          ticks: Math.min(...ticks.map((t) => t.getBoundingClientRect().left)),
+        };
+      }),
+    );
+  const check = async () => {
+    const [diagram, slicePanel] = await read();
+    expect(Math.abs(diagram!.left - slicePanel!.left)).toBeLessThan(0.5);
+    const gap = Math.min(diagram!.ticks, slicePanel!.ticks) - diagram!.right;
+    expect(gap).toBeGreaterThan(3);
+    expect(gap).toBeLessThan(5);
+  };
+  await check();
+  await setMode(page, "constant T");
+  await check();
+  // Wider tick labels on the diagram ("0.001") move both labels left.
+  await setMode(page, "constant p");
+  const before = (await read())[1]!.left;
+  await page.getByRole("button", { name: "bar", exact: true }).click();
+  await expect(page.locator(".phase-diagram .y-label")).toHaveText("p (bar)");
+  await check();
+  expect((await read())[1]!.left).toBeLessThan(before - 5);
+});

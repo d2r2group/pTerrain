@@ -88,12 +88,12 @@ body {
   max-width: 76rem;
 }
 
-/* The header: the logo, the GitHub button, the main row and the theme button at the far right,
-   on one row; only below 410 px does the main row move under the logo. */
+/* The header: the logo, the main row and the theme button at the far right, on one row; only
+   below 356 px does the main row move under the logo. */
 header {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-  grid-template-areas: "logo repo main theme";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "logo main theme";
   gap: 0.5rem 0.75rem;
   align-items: center;
   margin-bottom: 0.75rem;
@@ -101,10 +101,6 @@ header {
 
 header .logo {
   grid-area: logo;
-}
-
-header .repo-link {
-  grid-area: repo;
 }
 
 header .main-row {
@@ -115,10 +111,10 @@ header .theme-toggle {
   grid-area: theme;
 }
 
-/* Below 37rem the full header (about 555 px) no longer fits one row, so it compacts to 378 px,
-   which fits a phone of 412 px or wider: a 1.5rem logo, the Metastable eye without its label, and a p | T toggle 44 px wide in
+/* Below 33.5rem the full header (about 498 px) no longer fits one row, so it compacts to 323 px,
+   which fits a phone of 360 px or wider: a 1.5rem logo, the Metastable eye without its label, and a p | T toggle 44 px wide in
    all. The toggle is one button, so the whole of it is one 44 px touch target. */
-@media (max-width: 36.99rem) {
+@media (max-width: 33.5rem) {
   header .logo svg {
     height: 1.5rem;
   }
@@ -140,17 +136,17 @@ header .theme-toggle {
   }
 }
 
-/* Below 410 px even the compact header no longer fits one row: the main row moves under the
-   logo, and the two buttons stay on the logo's line. */
-@media (max-width: 25.6rem) {
+/* Below 356 px even the compact header no longer fits one row: the main row moves under the
+   logo, and the theme button stays on the logo's line. */
+@media (max-width: 22.2rem) {
   header {
     grid-template-areas:
-      "logo repo . theme"
-      "main main main main";
+      "logo . theme"
+      "main main main";
   }
 }
 
-/* The GitHub and theme buttons: 44 × 44 px, the minimum touch target, without a border. */
+/* The theme button: 44 × 44 px, the minimum touch target, without a border. */
 header > .icon-button {
   box-sizing: border-box;
   display: inline-flex;
@@ -930,6 +926,10 @@ input {
 
 .site-footer a .icon {
   flex: none;
+}
+
+.site-footer .repo-link {
+  color: var(--fg);
 }
 
 /* Styled like the main row's buttons, 44 px high. */
