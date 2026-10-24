@@ -67,7 +67,7 @@ const CUT_LABEL: Record<Mode, string> = {
 const PHASE_VAR: Record<Phase, string> = {
   s: "--phase-solid",
   l: "--phase-liquid",
-  v: "--phase-vapour",
+  v: "--phase-vapor",
 };
 
 interface Traced {
@@ -158,7 +158,10 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   /** The mode currently drawn; it lags `store.state.mode` while the swap animates. */
   let shown: Mode = store.state.mode;
   let swap: { timer: Timer; to: Mode } | null = null;
-  /** Each mode's stable-phase grid; the colours are applied on every paint, so a theme change keeps them. */
+  /**
+   * Each mode's stable-phase grid; the colors are applied on every paint, so a theme change keeps
+   * them.
+   */
   const rasters = new RasterCache();
 
   const trace = ({ model, window }: Readonly<State>) => {
@@ -308,7 +311,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   /**
    * Draws the phase names t of the way from their points in `from` to their points in `to`, so
    * that during the swap each one moves on a straight line between the two, as the bitmap does.
-   * A phase labelled in one mode only keeps that mode's point.
+   * A phase labeled in one mode only keeps that mode's point.
    */
   const drawLabels = (from: Mode, to: Mode, t: number) => {
     const { window } = store.state;
@@ -416,7 +419,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   };
 
   /**
-   * The stable transition values in bold under the x axis, centred on their guide lines, with a
+   * The stable transition values in bold under the x axis, centered on their guide lines, with a
    * tick mark at the true x. The axis has no tick labels of its own. Values that
    * would overlap are pushed apart. Crossings that coincide, as at the triple point, get one
    * value.
@@ -564,8 +567,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
     drawAll();
   });
 
-  // The region colours come from CSS, so a theme change, by the button or the system, repaints
-  // the bitmap.
+  // The region colors come from CSS, so a theme change repaints the bitmap.
   onThemeChange(() => {
     if (size.width > 0) paintRegions();
   });
@@ -589,6 +591,6 @@ function prefersReducedMotion(): boolean {
 /** `#rrggbb` to [r, g, b] in 0–255. */
 function parseHex(hex: string): [number, number, number] {
   const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
-  if (!m) throw new Error(`pTerrain: expected a #rrggbb colour, got "${hex}"`);
+  if (!m) throw new Error(`pTerrain: expected a #rrggbb color, got "${hex}"`);
   return [parseInt(m[1] as string, 16), parseInt(m[2] as string, 16), parseInt(m[3] as string, 16)];
 }

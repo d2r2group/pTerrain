@@ -1,9 +1,9 @@
-// The controls. The main row beside the logo: the axis toggle and the triple-point snap. Above
-// the plots: the metastable toggle. Beside or below the plots: the cut slider and
-// number field with the pressure unit, the exaggerated s-l slope checkbox and the readout for
-// screen readers. The substance panel is in substancePanel.ts.
+// The controls. The main row beside the logo: the axis toggle. Above the plots: the metastable
+// toggle. Beside or below the plots: the cut slider and number field with the pressure unit, the
+// exaggerated s-l slope checkbox and the readout for screen readers. The substance panel is in
+// substancePanel.ts, and the info button after the axis toggle in about.ts.
 
-import { EYE, EYE_OFF, icon, TRIPLE_POINT } from "./icons";
+import { EYE, EYE_OFF, icon } from "./icons";
 import { fromCutAxis, toCutAxis, type Mode, type Store } from "./state";
 import { PHASE_NAME, readoutRows } from "./substanceFields";
 import {
@@ -212,31 +212,6 @@ export function createExaggerateToggle(container: HTMLElement, store: Store): vo
       k === 1
         ? "The s-l line already leans visibly here"
         : "Enlarge Δv_fus so that the s-l line visibly leans; the s-v and l-v lines stay, and the slice follows";
-  };
-  sync();
-  store.subscribe(sync);
-}
-
-/**
- * The triple-point button of the main row, three boundary lines meeting at a point, which snaps
- * the cut to the triple point.
- */
-export function createSnapButton(container: HTMLElement, store: Store): void {
-  const snap = document.createElement("button");
-  snap.type = "button";
-  snap.className = "snap icon-button";
-  snap.innerHTML = icon(TRIPLE_POINT, 24);
-  snap.setAttribute("aria-label", "Snap to triple point");
-  snap.addEventListener("click", () => store.snapToTriplePoint());
-  container.append(snap);
-
-  const sync = () => {
-    const { mode, params, pressureUnit } = store.state;
-    // A valid window always holds the triple point, so there is always one to snap to.
-    snap.title =
-      mode === "isobar"
-        ? `Snap the isobar to the triple point, p_t = ${formatPressure(params.pt, pressureUnit)}`
-        : `Snap the isotherm to the triple point, T_t = ${formatTemperature(params.Tt)}`;
   };
   sync();
   store.subscribe(sync);

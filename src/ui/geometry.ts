@@ -151,7 +151,7 @@ export function cutY(mode: Mode, value: number, window: PlotWindow, size: PlotSi
 }
 
 /**
- * The stable phase at the centre of every pixel of a cols × rows grid over the plot area, as an
+ * The stable phase at the center of every pixel of a cols × rows grid over the plot area, as an
  * index into PHASES, row by row from the top left.
  */
 export function rasterPhases(

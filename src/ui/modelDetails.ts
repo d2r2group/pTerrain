@@ -7,6 +7,7 @@
 import MATH from "../assets/math.json";
 import { PRESETS, type PresetId } from "../physics/presets";
 import { GLOBE, icon } from "./icons";
+import { createOverlay } from "./overlay";
 import { createRepoLink } from "./repoLink";
 import { FIELD_GROUPS, substanceValues, type FieldKey } from "./substanceFields";
 
@@ -32,8 +33,8 @@ type InputKey = Exclude<FieldKey, "Tmin" | "Tmax" | "pmin" | "pmax">;
 
 /** Each input as the overlay writes it. */
 const SYMBOL: Record<InputKey, string> = {
-  Tt: tex`T_\mathrm{t}`,
-  pt: tex`p_\mathrm{t}`,
+  Tt: tex`T_\mathrm{tp}`,
+  pt: tex`p_\mathrm{tp}`,
   dHfus: tex`\Delta h_\mathrm{fus}`,
   dHvap: tex`\Delta h_\mathrm{vap}`,
   Ss: tex`s_\mathrm{s}`,
@@ -55,7 +56,7 @@ const SOURCES: Record<PresetId, Record<InputKey, string>> = {
     pt: NIST,
     dHfus: IAPWS,
     dHvap: NIST,
-    Ss: `${tex`s_\mathrm{l} - \Delta h_\mathrm{fus}/T_\mathrm{t}`} (CODATA, NIST)`,
+    Ss: `${tex`s_\mathrm{l} - \Delta h_\mathrm{fus}/T_\mathrm{tp}`} (CODATA, NIST)`,
     Vs: IAPWS,
     Vl: NIST,
     cps: IAPWS,
@@ -65,7 +66,7 @@ const SOURCES: Record<PresetId, Record<InputKey, string>> = {
   co2: {
     Tt: SPAN_WAGNER,
     pt: SPAN_WAGNER,
-    dHfus: tex`T_\mathrm{t}\,(s_\mathrm{l} - s_\mathrm{s})`,
+    dHfus: tex`T_\mathrm{tp}\,(s_\mathrm{l} - s_\mathrm{s})`,
     dHvap: NIST,
     Ss: "Giauque &amp; Egan (1937)",
     Vs: "Clapeyron, Span–Wagner melting curve",
@@ -104,32 +105,32 @@ export function substanceTable(): string {
 }
 
 /**
- * The overlay's body, in order: 1 Gibbs energies, 2 What follows from
+ * The overlay's body, in order: 1 Gibbs free energies, 2 What follows from
  * them, 3 Compared with integrating Clausius–Clapeyron, 4 Substance data, 5 Limits, 6 Numerics,
  * and a note on how it was made.
  */
 export function modelDetailsHtml(): string {
   return `
 <section>
-  <h3>Gibbs energies</h3>
-  <p>Each phase ${tex`i`} has a closed-form molar Gibbs energy referenced to the triple point
-  ${tex`(T_\mathrm{t}, p_\mathrm{t})`}, where all three are 0. The solid and the liquid are
-  incompressible, the vapour is an ideal gas, and every phase has a constant heat capacity:</p>
-  ${display`\begin{aligned} g_i(T, p) &= -s_i\,(T - T_\mathrm{t}) - c_{p,i} \left[ T \ln\frac{T}{T_\mathrm{t}} - (T - T_\mathrm{t}) \right] \\ &\quad {}+ v_i\,(p - p_\mathrm{t}) \qquad (i \in \{\mathrm{s}, \mathrm{l}\}) \\ g_\mathrm{v}(T, p) &= -s_\mathrm{v}\,(T - T_\mathrm{t}) - c_{p,\mathrm{v}} \left[ T \ln\frac{T}{T_\mathrm{t}} - (T - T_\mathrm{t}) \right] \\ &\quad {}+ RT \ln\frac{p}{p_\mathrm{t}}. \end{aligned}`}
+  <h3>Gibbs free energies</h3>
+  <p>Each phase ${tex`i`} has a closed-form molar Gibbs free energy referenced to the triple point
+  ${tex`(T_\mathrm{tp}, p_\mathrm{tp})`}, where all three are 0. The solid and the liquid are
+  incompressible, the vapor is an ideal gas, and every phase has a constant heat capacity:</p>
+  ${display`\begin{aligned} g_i(T, p) &= -s_i\,(T - T_\mathrm{tp}) - c_{p,i} \left[ T \ln\frac{T}{T_\mathrm{tp}} - (T - T_\mathrm{tp}) \right] \\ &\quad {}+ v_i\,(p - p_\mathrm{tp}) \qquad (i \in \{\mathrm{s}, \mathrm{l}\}) \\ g_\mathrm{v}(T, p) &= -s_\mathrm{v}\,(T - T_\mathrm{tp}) - c_{p,\mathrm{v}} \left[ T \ln\frac{T}{T_\mathrm{tp}} - (T - T_\mathrm{tp}) \right] \\ &\quad {}+ RT \ln\frac{p}{p_\mathrm{tp}}. \end{aligned}`}
   <p>Here ${tex`s_i`} is the molar entropy at the triple point, ${tex`v_i`} the molar volume and
   ${tex`c_{p,i}`} the heat capacity. The inputs are ${SYMBOL.Tt}, ${SYMBOL.pt},
   ${SYMBOL.dHfus}, ${SYMBOL.dHvap}, ${SYMBOL.Ss}, ${SYMBOL.Vs}, ${SYMBOL.Vl} and the three
   ${tex`c_p`}; the other entropies follow from</p>
-  ${display`s_\mathrm{l} = s_\mathrm{s} + \frac{\Delta h_\mathrm{fus}}{T_\mathrm{t}}, \qquad s_\mathrm{v} = s_\mathrm{l} + \frac{\Delta h_\mathrm{vap}}{T_\mathrm{t}}.`}
+  ${display`s_\mathrm{l} = s_\mathrm{s} + \frac{\Delta h_\mathrm{fus}}{T_\mathrm{tp}}, \qquad s_\mathrm{v} = s_\mathrm{l} + \frac{\Delta h_\mathrm{vap}}{T_\mathrm{tp}}.`}
   <p>${SYMBOL.Ss} moves no boundary, but it sets the overall slope of the ${tex`g(T)`}
   curves.</p>
 </section>
 <section>
   <h3>What follows from them</h3>
   ${display`\left(\frac{\partial g}{\partial T}\right)_p = -s, \qquad \left(\frac{\partial g}{\partial p}\right)_T = v.`}
-  <p>So every ${tex`g(T)`} curve falls with ${tex`T`}, the vapour's fastest, with curvature
+  <p>So every ${tex`g(T)`} curve falls with ${tex`T`}, the vapor's fastest, with curvature
   ${tex`-c_p/T`}. Along an isotherm the solid and the liquid are straight lines in
-  ${tex`g(p)`}, and the vapour rises as ${tex`RT \ln p`}. The stable phase is the one with the
+  ${tex`g(p)`}, and the vapor rises as ${tex`RT \ln p`}. The stable phase is the one with the
   lowest ${tex`g`}, and the phase boundaries are the lines where two of them are equal,
   ${tex`g_i = g_j`}. Their slope is given by Clausius–Clapeyron,</p>
   ${display`\frac{\mathrm{d}p}{\mathrm{d}T} = \frac{\Delta s}{\Delta v},`}
@@ -141,11 +142,11 @@ export function modelDetailsHtml(): string {
   <p>A common route builds the diagram boundary by boundary. Each coexistence line is an
   integration of Clausius–Clapeyron, ${tex`\mathrm{d}p/\mathrm{d}T = \Delta h/(T\,\Delta v)`},
   under its own approximations, the triple point is where two lines cross, and the
-  solid–vapour line takes ${tex`\Delta h_\mathrm{sub} = \Delta h_\mathrm{fus} + \Delta h_\mathrm{vap}`}.
-  With an ideal-gas vapour, ${tex`v_\mathrm{l}`} neglected and a constant
-  ${SYMBOL.dHvap}, the liquid–vapour line through a known point
-  ${tex`(T_0, p_0)`}, such as the normal boiling point, is</p>
-  ${display`\ln\frac{p}{p_0} = -\frac{\Delta h_\mathrm{vap}}{R}\left(\frac{1}{T} - \frac{1}{T_0}\right).`}
+  solid–vapor line takes ${tex`\Delta h_\mathrm{sub} = \Delta h_\mathrm{fus} + \Delta h_\mathrm{vap}`}.
+  With an ideal-gas vapor, ${tex`v_\mathrm{l}`} neglected and a constant
+  ${SYMBOL.dHvap}, the liquid–vapor line through a known point
+  ${tex`(T_\mathrm{b}, p_0)`}, such as the normal boiling point, is</p>
+  ${display`\ln\frac{p}{p_0} = -\frac{\Delta h_\mathrm{vap}}{R}\left(\frac{1}{T} - \frac{1}{T_\mathrm{b}}\right).`}
   <p>This app starts one step earlier, from a molar ${tex`g`} for each phase. The boundaries
   are where two of them are equal, so Clausius–Clapeyron, the triple point and
   ${tex`\Delta h_\mathrm{sub} = \Delta h_\mathrm{fus} + \Delta h_\mathrm{vap}`} follow from the
@@ -154,15 +155,15 @@ export function modelDetailsHtml(): string {
   boundary-by-boundary one knows only where ${tex`\Delta g = 0`}, not the ${tex`g`} of each
   phase.</p>
   <p>The approximations are made once for each phase (incompressible solid and liquid, an
-  ideal-gas vapour, constant ${tex`c_p`}) rather than for each transition. So ${tex`\Delta h`}
+  ideal-gas vapor, constant ${tex`c_p`}) rather than for each transition. So ${tex`\Delta h`}
   changes with ${tex`T`} through the phases' ${tex`c_p`}, and ${tex`v_\mathrm{l}`} is kept.
-  The liquid–vapour line, for example, is</p>
-  ${display`\begin{aligned} \ln\frac{p}{p_\mathrm{t}} &= -\frac{\Delta h_\mathrm{vap}}{R}\left(\frac{1}{T} - \frac{1}{T_\mathrm{t}}\right) \\ &\quad {}+ \frac{\Delta c_p}{R}\left(\ln\frac{T}{T_\mathrm{t}} + \frac{T_\mathrm{t}}{T} - 1\right) + \frac{v_\mathrm{l}\,(p - p_\mathrm{t})}{RT}, \end{aligned}`}
+  The liquid–vapor line, for example, is</p>
+  ${display`\begin{aligned} \ln\frac{p}{p_\mathrm{tp}} &= -\frac{\Delta h_\mathrm{vap}}{R}\left(\frac{1}{T} - \frac{1}{T_\mathrm{tp}}\right) \\ &\quad {}+ \frac{\Delta c_p}{R}\left(\ln\frac{T}{T_\mathrm{tp}} + \frac{T_\mathrm{tp}}{T} - 1\right) + \frac{v_\mathrm{l}\,(p - p_\mathrm{tp})}{RT}, \end{aligned}`}
   <p>with ${tex`\Delta c_p = c_{p,\mathrm{v}} - c_{p,\mathrm{l}}`}, and it reduces to the
   integrated form when ${tex`\Delta c_p = 0`} and ${tex`v_\mathrm{l}`} is neglected. The
   solid–liquid line differs in the same way: integrating Clapeyron with a constant
   ${SYMBOL.dHfus} gives
-  ${tex`p - p_0 = (\Delta h_\mathrm{fus}/\Delta v_\mathrm{fus}) \ln(T/T_0)`}, while the model
+  ${tex`p - p_0 = (\Delta h_\mathrm{fus}/\Delta v_\mathrm{fus}) \ln(T/T_\mathrm{m})`}, while the model
   with ${tex`\Delta c_p = 0`} holds ${tex`\Delta s_\mathrm{fus}`} constant and gives a line
   straight in ${tex`T`}; the two agree near the triple point. The inputs are therefore
   properties of each phase rather than differences across each transition: ${SYMBOL.Ss} and
@@ -179,7 +180,7 @@ export function modelDetailsHtml(): string {
 <section>
   <h3>Limits</h3>
   <ul>
-    <li>There is no critical point, so the liquid–vapour line is accurate only well below
+    <li>There is no critical point, so the liquid–vapor line is accurate only well below
     ${tex`T_\mathrm{c}`}. Water stays within 0.5 K of the reference data. For CO₂ the line falls
     6 % low at 233 K and 29 % low at 293 K (${tex`T_\mathrm{c} = 304\,\mathrm{K}`}), so its
     window stops at 275 K.</li>
@@ -191,12 +192,12 @@ export function modelDetailsHtml(): string {
         window has ${tex`T_\mathrm{max} > T_\mathrm{min}`} and
         ${tex`p_\mathrm{max} > p_\mathrm{min}`} and holds the triple point.</li>
         <li>Every entropy stays positive over the window.</li>
-        <li>The vapour is at least three times less dense than the solid and the liquid:
+        <li>The vapor is at least three times less dense than the solid and the liquid:
         ${tex`3 v\, p_\mathrm{max} < R T_\mathrm{min}`}.</li>
         <li>Each pair of ${tex`g`} curves crosses at most once along every isobar and
         isotherm.</li>
-        <li>The solid–vapour line leaves the window through ${tex`p_\mathrm{min}`} and the
-        liquid–vapour line through ${tex`p_\mathrm{max}`}, not through the ${tex`T`}
+        <li>The solid–vapor line leaves the window through ${tex`p_\mathrm{min}`} and the
+        liquid–vapor line through ${tex`p_\mathrm{max}`}, not through the ${tex`T`}
         edges.</li>
       </ul>
     </li>
@@ -204,7 +205,7 @@ export function modelDetailsHtml(): string {
 </section>
 <section>
   <h3>Numerics</h3>
-  <p>The boundaries are traced by bracketing and bisection: the solid–vapour and liquid–vapour
+  <p>The boundaries are traced by bracketing and bisection: the solid–vapor and liquid–vapor
   lines for ${tex`p`} at each ${tex`T`}, the steep solid–liquid line for ${tex`T`} at each
   ${tex`p`}. The crossings along a cut are found by bisection to ${tex`10^{-9}`} relative and
   marked stable or metastable by whether the third ${tex`g`} is higher there. The slice plots
@@ -220,7 +221,7 @@ iteration under the author's supervision.</p>`;
 /**
  * The footer after the plots and their controls: a link to d2r2group.com, with a globe, one to
  * the source on GitHub, the Model Details button, which opens the overlay, and the copyright
- * line. Esc, the × button and a click on the backdrop close it, and focus returns to the button.
+ * line.
  */
 export function createFooter(container: HTMLElement): void {
   const footer = document.createElement("footer");
@@ -236,7 +237,6 @@ export function createFooter(container: HTMLElement): void {
   // g(T, p) as a small formula left of the label; hidden from screen readers, so the name stays
   // "Model Details".
   button.innerHTML = `<span class="button-math" aria-hidden="true">${tex`g(T, p)`}</span>Model Details`;
-  button.setAttribute("aria-haspopup", "dialog");
   button.title = "Open how the model works, with its equations and the substance data";
   // The glyphs that every formula references, drawn once, outside the dialog, so that the
   // button's formula has them while the dialog is closed.
@@ -249,26 +249,6 @@ export function createFooter(container: HTMLElement): void {
   copyright.textContent = "2026 © Peter Schindler";
   footer.append(link, createRepoLink(), button, copyright, glyphs);
 
-  const dialog = document.createElement("dialog");
-  dialog.className = "model-details";
-  dialog.setAttribute("aria-labelledby", "model-details-title");
-  dialog.innerHTML =
-    '<div class="dialog-head"><h2 id="model-details-title">Model details</h2>' +
-    '<button type="button" class="dialog-close" aria-label="Close" title="Close (Esc)">×</button></div>' +
-    `<div class="dialog-body">${modelDetailsHtml()}</div>`;
-  const close = dialog.querySelector<HTMLButtonElement>(".dialog-close")!;
-
-  button.addEventListener("click", () => dialog.showModal());
-  close.addEventListener("click", () => dialog.close());
-  // The dialog has no padding of its own, so a click on it rather than on its contents is a
-  // click on the backdrop. The press must start there too: a text selection dragged out of the
-  // body also ends in a click on the dialog.
-  let pressedBackdrop = false;
-  dialog.addEventListener("pointerdown", (event) => (pressedBackdrop = event.target === dialog));
-  dialog.addEventListener("click", (event) => {
-    if (pressedBackdrop && event.target === dialog) dialog.close();
-  });
-  dialog.addEventListener("close", () => button.focus());
-
-  container.append(footer, dialog);
+  container.append(footer);
+  createOverlay(container, button, "model-details", "Model details", modelDetailsHtml());
 }

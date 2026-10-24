@@ -36,7 +36,7 @@ describe("model details", () => {
     const html = modelDetailsHtml();
     const headings = [...html.matchAll(/<h3>([^<]*)<\/h3>/g)].map(([, h]) => h);
     expect(headings).toEqual([
-      "Gibbs energies",
+      "Gibbs free energies",
       "What follows from them",
       "Compared with integrating Clausius–Clapeyron",
       "Substance data",

@@ -13,11 +13,12 @@ test.afterEach(({ page }) => {
 });
 
 async function open(page: Page) {
-  await page.goto("./");
+  // The tests are written for H₂O; a first visit opens on CO₂ (tested in controls.spec.ts).
+  await page.goto("./#h2o");
   await expect(page.locator(".phase-diagram svg")).toBeVisible();
 }
 
-/** The colour of the region bitmap's top-left pixel, in the solid region of H₂O. */
+/** The color of the region bitmap's top-left pixel, in the solid region of H₂O. */
 const regionPixel = (page: Page) =>
   page
     .locator("canvas.regions")
@@ -29,11 +30,22 @@ const curveStroke = (page: Page) =>
     .first()
     .evaluate((el) => getComputedStyle(el).stroke);
 
-test("the logo is the heading, named pTerrain", async ({ page }) => {
+test("the logo is the heading, named pTerrain, and a button that snaps to the triple point", async ({
+  page,
+}) => {
   await open(page);
   const heading = page.getByRole("heading", { level: 1 });
   await expect(heading).toHaveAccessibleName("pTerrain");
-  await expect(heading.getByRole("img", { name: "pTerrain" })).toBeVisible();
+  const logo = heading.getByRole("button", { name: "pTerrain" });
+  await expect(logo).toHaveAccessibleDescription(
+    "Snap the isobar to the triple point, p_tp = 0.612 kPa",
+  );
+  await expect(logo).toHaveCSS("cursor", "pointer");
+  await page.getByRole("button", { name: "constant T" }).click();
+  await expect(logo).toHaveAttribute(
+    "title",
+    "Snap the isotherm to the triple point, T_tp = 273.2 K",
+  );
 });
 
 test("the main row sits right of the logo, and the substance panel beside the plots under the cut", async ({
@@ -62,7 +74,7 @@ test("the main row sits right of the logo, and the substance panel beside the pl
     .evaluateAll((els) =>
       els.map((el) => el.getAttribute("aria-label") ?? el.textContent?.trim() ?? ""),
     );
-  expect(names).toEqual(["constant T", "Snap to triple point"]);
+  expect(names).toEqual(["constant T", "About"]);
   // Every control in the row is the same height.
   const heights = await row
     .locator(":scope > *")
@@ -114,15 +126,15 @@ test("the main row stays on the logo's line, left-aligned, on any screen wide en
       Math.abs(rowBox.y + rowBox.height / 2 - (logo.y + logo.height / 2)),
       `${width}`,
     ).toBeLessThan(6);
-    // Left-aligned: the row starts one gap (0.75rem) right of the logo, not centred.
+    // Left-aligned: the row starts one gap (0.75rem) right of the logo, not centered.
     expect(first.x - (logo.x + logo.width), `${width}`).toBeCloseTo(12, 0);
     const last = (await row.locator(":scope > *").last().boundingBox())!;
     expect(last.x + last.width, `${width}`).toBeLessThanOrEqual(theme.x);
-    // One line of buttons: every control in the row has the same centre.
-    const centres = await row
+    // One line of buttons: every control in the row has the same center.
+    const centers = await row
       .locator(":scope > *")
       .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
-    expect(new Set(centres).size, `${width}`).toBe(1);
+    expect(new Set(centers).size, `${width}`).toBe(1);
   }
 });
 
@@ -145,17 +157,6 @@ test("the axis toggle is one button that shows an italic p and T, named after th
   await expect(page.getByRole("button", { name: /^constant/ })).toHaveCount(1);
 });
 
-test("the triple-point button shows three lines meeting at a point, named for what it does", async ({
-  page,
-}) => {
-  await open(page);
-  const snap = page.getByRole("button", { name: "Snap to triple point" });
-  await expect(snap).toHaveText("");
-  await expect(snap.locator("svg circle")).toHaveCount(1);
-  const { width, height } = (await snap.boundingBox())!;
-  expect(width).toBe(height);
-});
-
 test("the Metastable button reports its state with aria-pressed", async ({ page }) => {
   await open(page);
   const button = page.getByRole("button", { name: "Metastable" });
@@ -172,13 +173,15 @@ test("the Metastable button reports its state with aria-pressed", async ({ page 
   await expect(page.locator(".phase-diagram")).not.toHaveClass(/hide-metastable/);
 });
 
-test.describe("in a light system scheme", () => {
-  test.use({ colorScheme: "light" });
+test.describe("in a dark system scheme", () => {
+  test.use({ colorScheme: "dark" });
 
-  test("the theme button switches, recolours the plots and survives a reload", async ({ page }) => {
+  test("the theme button switches, recolors the plots and survives a reload", async ({ page }) => {
     await open(page);
     const html = page.locator("html");
+    // The page is light until dark is chosen, whatever the system's scheme.
     await expect(html).not.toHaveAttribute("data-theme");
+    await expect(page.getByRole("button", { name: "Switch to dark theme" })).toBeVisible();
     const lightPixel = await regionPixel(page);
     const lightStroke = await curveStroke(page);
 
@@ -214,21 +217,6 @@ test.describe("in a light system scheme", () => {
     await page.getByRole("button", { name: "Switch to dark theme" }).click();
     await swapTo("constant p");
     expect(await regionPixel(page)).not.toEqual(lightPixel);
-  });
-
-  test("a system switch to dark repaints the regions until a theme is chosen", async ({ page }) => {
-    await open(page);
-    const lightPixel = await regionPixel(page);
-    await page.emulateMedia({ colorScheme: "dark" });
-    await expect.poll(() => regionPixel(page)).not.toEqual(lightPixel);
-    await expect(page.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
-
-    // Once light is chosen, the system's dark scheme no longer applies.
-    await page.getByRole("button", { name: "Switch to light theme" }).click();
-    expect(await regionPixel(page)).toEqual(lightPixel);
-    await page.emulateMedia({ colorScheme: "light" });
-    await page.emulateMedia({ colorScheme: "dark" });
-    expect(await regionPixel(page)).toEqual(lightPixel);
   });
 });
 

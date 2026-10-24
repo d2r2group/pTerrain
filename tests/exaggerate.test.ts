@@ -35,7 +35,7 @@ describe("exaggerated s-l slope", () => {
     expect(slAt(model, window, window.pmax)).toBeCloseTo(params.Tt - lean, 3);
   });
 
-  it("CO₂: the liquid is enlarged, and the line leans forward, within the vapour-density cap", () => {
+  it("CO₂: the liquid is enlarged, and the line leans forward, within the vapor-density cap", () => {
     const { params, window } = co2;
     const { params: model, factor } = exaggerated(params, window);
     expect(model.stretch?.phase).toBe("l");
@@ -43,20 +43,20 @@ describe("exaggerated s-l slope", () => {
     const lean = slAt(model, window, window.pmax) - params.Tt;
     expect(lean).toBeGreaterThan(5);
     expect(lean).toBeLessThanOrEqual(LEAN * (window.Tmax - window.Tmin) + 1e-6);
-    // The enlarged liquid stays more than three times as dense as the vapour anywhere in the
+    // The enlarged liquid stays more than three times as dense as the vapor anywhere in the
     // window.
     const V = volume("l", window.Tmin, window.pmax, model);
     expect(3 * V).toBeLessThan(volume("v", window.Tmin, window.pmax, model));
-    expect(validate(model, window).map((issue) => issue.check)).not.toContain("vapourDensity");
+    expect(validate(model, window).map((issue) => issue.check)).not.toContain("vaporDensity");
   });
 
-  it("checks the vapour density with the enlarged volume", () => {
+  it("checks the vapor density with the enlarged volume", () => {
     const { params, window } = co2;
     const stretch = exaggerated(params, window).params.stretch!;
     // Under the twofold cap of before RP1: the threefold rule fails.
     const c = (R * window.Tmin) / (2 * window.pmax) - params.Vl;
     const checks = validate({ ...params, stretch: { ...stretch, c } }, window).map((i) => i.check);
-    expect(checks).toContain("vapourDensity");
+    expect(checks).toContain("vaporDensity");
   });
 
   it("a Custom substance whose full stretch is too wide: the stretched model passes validate, at a reduced factor", () => {
@@ -118,7 +118,7 @@ describe("exaggerated s-l slope", () => {
         ["l", "v"],
       ] as const) {
         // Every point of the exaggerated line lies on the real one: G_i = G_v there, up to the
-        // vapour-line table's interpolation. As a shift in T (ΔG / ΔS) that is under 1 mK.
+        // vapor-line table's interpolation. As a shift in T (ΔG / ΔS) that is under 1 mK.
         const dS =
           1e-3 *
           (entropy(j, params.Tt, params.pt, params) - entropy(i, params.Tt, params.pt, params));
@@ -145,7 +145,7 @@ describe("exaggerated s-l slope", () => {
           const hp = 1e-3 * p;
           const dGdT = (gibbs(phase, T + hT, p, model) - gibbs(phase, T - hT, p, model)) / (2 * hT);
           const dGdp = (gibbs(phase, T, p + hp, model) - gibbs(phase, T, p - hp, model)) / (2 * hp);
-          // Within the linear pieces of the vapour-line table the derivative is exact.
+          // Within the linear pieces of the vapor-line table the derivative is exact.
           expect(dGdT * 1000).toBeCloseTo(-entropy(phase, T, p, model), 2);
           expect(dGdp * 1000).toBeCloseTo(volume(phase, T, p, model), 6);
         }

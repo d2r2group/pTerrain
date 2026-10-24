@@ -91,11 +91,11 @@ export function sliceSegments(
 }
 
 /**
- * Where the G axis is centred on this cut, kJ/mol: the G − Ḡ of its highest stable crossing, so
+ * Where the G axis is centered on this cut, kJ/mol: the G − Ḡ of its highest stable crossing, so
  * that crossing sits halfway up the panel. A cut without a stable crossing lies in one phase, and
- * that phase's G at the middle of the cut is centred instead.
+ * that phase's G at the middle of the cut is centered instead.
  */
-export function gCentre(
+export function gCenter(
   cut: Cut,
   params: Params,
   window: PlotWindow,
@@ -112,7 +112,7 @@ export function gCentre(
 
 /**
  * Half the height of the G axis, kJ/mol: the farthest any crossing, stable or metastable, lies
- * from its cut's centre (`gCentre`), over SPAN_CUTS cuts of each mode evenly across the axis
+ * from its cut's center (`gCenter`), over SPAN_CUTS cuts of each mode evenly across the axis
  * (isobars in log p), with G_PAD headroom. So every crossing stays inside the panel as the axis
  * follows the cut, and the scale does not change while the cut is dragged or the mode is toggled.
  * Cuts that lie in one phase only are left out: their metastable crossings can lie far above the
@@ -135,9 +135,9 @@ export function gHalfSpan(params: Params, window: PlotWindow, cuts = SPAN_CUTS):
       const cut = cutAt(lo + ((hi - lo) * k) / cuts);
       const found = crossings(cut, params, window);
       if (!found.some((c) => c.stable)) continue;
-      const centre = gCentre(cut, params, window, found);
+      const center = gCenter(cut, params, window, found);
       for (const c of found) {
-        half = Math.max(half, Math.abs(relativeG(c.phases[0], c.T, c.p, params) - centre));
+        half = Math.max(half, Math.abs(relativeG(c.phases[0], c.T, c.p, params) - center));
       }
     }
   }
@@ -145,7 +145,7 @@ export function gHalfSpan(params: Params, window: PlotWindow, cuts = SPAN_CUTS):
   return half > 0 ? (1 + G_PAD) * half : 1;
 }
 
-/** The G axis domain on this cut, kJ/mol: `half` either side of its `gCentre`. */
+/** The G axis domain on this cut, kJ/mol: `half` either side of its `gCenter`. */
 export function gDomain(
   cut: Cut,
   params: Params,
@@ -153,6 +153,6 @@ export function gDomain(
   half: number,
   found?: readonly Crossing[],
 ): [number, number] {
-  const centre = gCentre(cut, params, window, found);
-  return [centre - half, centre + half];
+  const center = gCenter(cut, params, window, found);
+  return [center - half, center + half];
 }

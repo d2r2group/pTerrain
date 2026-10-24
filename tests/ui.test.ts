@@ -47,7 +47,7 @@ import {
 } from "../src/ui/labels";
 import {
   alongCut,
-  gCentre,
+  gCenter,
   gDomain,
   gHalfSpan,
   relativeG,
@@ -324,7 +324,7 @@ describe("geometry", () => {
     }
   });
 
-  it("rasters the stable phase at each pixel centre", () => {
+  it("rasters the stable phase at each pixel center", () => {
     const cols = 200;
     const rows = 149;
     const grid = rasterPhases(h2o.params, win, "isobar", cols, rows);
@@ -338,7 +338,7 @@ describe("geometry", () => {
       const [T, p] = fromScreen(toTp, c + 0.5, r + 0.5);
       expect(PHASES[grid[r * cols + c] as number]).toBe(stablePhase(T, p, h2o.params));
     }
-    // Ice, steam and water at 10 or 1 kPa, and vapour at low p.
+    // Ice, steam and water at 10 or 1 kPa, and vapor at low p.
     const at = (T: number, p: number) => {
       const [x, y] = toScreen(projection("isobar", win, { width: cols, height: rows }), T, p);
       return PHASES[grid[Math.floor(y) * cols + Math.floor(x)] as number];
@@ -499,7 +499,7 @@ describe("slice panel", () => {
   );
 
   it.each(Object.entries(PRESETS))(
-    "%s: the G axis centres the highest stable crossing and holds every crossing of cuts that have one",
+    "%s: the G axis centers the highest stable crossing and holds every crossing of cuts that have one",
     (_, { params, window }) => {
       const half = gHalfSpan(params, window);
       // A denser set of cuts than gHalfSpan scans, in both modes, offset from its samples.
@@ -531,13 +531,13 @@ describe("slice panel", () => {
     },
   );
 
-  it("a cut without a stable crossing centres its one phase at the middle of the cut", () => {
+  it("a cut without a stable crossing centers its one phase at the middle of the cut", () => {
     const { params } = h2o;
-    // The window's low-p corner holds only vapour along this isobar.
+    // The window's low-p corner holds only vapor along this isobar.
     const window: PlotWindow = { ...win, Tmin: 320, Tmax: 350 };
     const cut: Cut = { kind: "isobar", p: 2 };
     expect(crossings(cut, params, window).filter((c) => c.stable)).toHaveLength(0);
-    expect(gCentre(cut, params, window)).toBe(relativeG("v", 335, 2, params));
+    expect(gCenter(cut, params, window)).toBe(relativeG("v", 335, 2, params));
   });
 
   it.each(Object.entries(PRESETS))(
@@ -562,7 +562,7 @@ describe("slice panel", () => {
           expect(shaded[k]!.phase).not.toBe(shaded[k - 1]!.phase);
         }
         // The middle of each run's range, not a sample: a run only as wide as one step, such as
-        // the liquid on an isobar just above p_t, has no sample but its two ends.
+        // the liquid on an isobar just above p_tp, has no sample but its two ends.
         for (const run of shaded) {
           const mid = 0.5 * (run.points[0]![0] + run.points.at(-1)![0]);
           const { T, p } = pointOnCut(cut, mid);
@@ -674,7 +674,7 @@ describe("phase labels", () => {
   });
 
   it("a region narrower than its label gets no label", () => {
-    // CO₂'s s-l line slopes forward, so a window that ends 2 K above T_t holds only a thin
+    // CO₂'s s-l line slopes forward, so a window that ends 2 K above T_tp holds only a thin
     // sliver of liquid between it and the right edge.
     const { params } = co2;
     const window: PlotWindow = { ...co2.window, Tmax: params.Tt + 2 };

@@ -2,7 +2,7 @@
 // vertical, and no zoom changes that: its slope is hundreds of times the s-v line's. Here the
 // model itself is changed, so that every plot stays consistent: the condensed phase whose volume
 // makes |ΔV_fus| grow (the solid for water, the liquid for CO₂) gets an extra c (p − p_iv(T))
-// in its G. That adds c to its volume, which tilts the s-l line, and vanishes on its own vapour
+// in its G. That adds c to its volume, which tilts the s-l line, and vanishes on its own vapor
 // line p_iv(T), so the s-v and l-v lines stay where they are.
 
 import { boundary } from "./boundaries";
@@ -27,7 +27,7 @@ export interface Exaggerated {
 
 /**
  * The exaggerated model for this substance and window: the stable s-l line drifts LEAN of the T
- * range between p_t and its top end, but by no more than ROOM of the room on that side (to the
+ * range between p_tp and its top end, but by no more than ROOM of the room on that side (to the
  * l-v line when it leans forward, to T_min when it leans back). The stretched model must pass
  * `validate`; where it does not, the factor is halved until it does, down to 1. A
  * line that already leans that far, a triple point outside the window, or a vertical line
@@ -52,7 +52,7 @@ export function exaggerated(params: Params, window: PlotWindow): Exaggerated {
 
   const phase = sign > 0 ? "l" : "s";
   const V = condensedVolume(phase, params);
-  const ref = vapourLine(phase, params, window);
+  const ref = vaporLine(phase, params, window);
   if (!ref) return same;
   const withC = (c: number): Params => ({ ...params, stretch: { phase, c, ...ref } });
 
@@ -63,7 +63,7 @@ export function exaggerated(params: Params, window: PlotWindow): Exaggerated {
     const sl = stableCrossing({ kind: "isobar", p: top.p }, ["s", "l"], withC(c), window);
     return sl ? sign * (sl.T - target) : 1;
   };
-  // The vapour must stay more than three times less dense than the enlarged phase.
+  // The vapor must stay more than three times less dense than the enlarged phase.
   const cMax = Math.max(0, ((1 - 1e-9) * R * window.Tmin) / (3 * window.pmax) - V);
   const c = past(cMax) <= 0 ? cMax : bisect(past, 0, cMax);
   for (let factor = (Math.abs(dV) + c) / Math.abs(dV); factor > 1; factor /= 2) {
@@ -74,11 +74,11 @@ export function exaggerated(params: Params, window: PlotWindow): Exaggerated {
 }
 
 /**
- * The real vapour line of a condensed phase, p_iv(T) with G_i = G_v, as a table over the window
+ * The real vapor line of a condensed phase, p_iv(T) with G_i = G_v, as a table over the window
  * that is linear in ln p between steps (and past its ends), with its derivative; null where it
  * cannot be found. Below RT/V_i, G_i − G_v falls with p, so the root is unique.
  */
-function vapourLine(
+function vaporLine(
   phase: "s" | "l",
   params: Params,
   window: PlotWindow,

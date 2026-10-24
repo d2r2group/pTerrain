@@ -1,20 +1,19 @@
-// Feather-style line icons (24 × 24, drawn in the text colour) for the header's buttons, the
+// Feather-style line icons (24 × 24, drawn in the text color) for the header's buttons, the
 // substance panel's buttons and the footer.
 
 export const MOON = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
 export const SUN =
   '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4' +
   'M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>';
-/** Three phase boundaries meeting at the triple point: s-v, l-v and the steep s-l line. */
-export const TRIPLE_POINT =
-  '<path d="M2 22Q7.5 20.5 12 14Q16.5 9.5 22 6.5M12 14 10.5 2"/>' +
-  '<circle cx="12" cy="14" r="3" fill="currentColor" stroke="none"/>';
 export const EYE =
   '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
 export const EYE_OFF =
   '<path d="M17.9 17.9A10.1 10.1 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.1-5.9' +
   "M9.9 4.2A9.1 9.1 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2" +
   'M1 1l22 22"/>';
+
+/** A lowercase italic i in a circle: About. */
+export const INFO = '<circle cx="12" cy="12" r="10"/><path d="M12.8 11l-1.5 6M13.6 7.6h.01"/>';
 
 /** The GitHub mark, as a Feather-style line drawing. */
 export const GITHUB =

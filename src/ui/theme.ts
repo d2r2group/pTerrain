@@ -1,6 +1,6 @@
-// The light/dark theme. Until the sun/moon button is pressed the page follows
-// `prefers-color-scheme`; pressing it sets `data-theme` on <html> and remembers the choice. The
-// inline script in index.html applies the stored choice before the first paint.
+// The light/dark theme. The page is light until the sun/moon button is pressed; pressing it sets
+// `data-theme` on <html> and remembers the choice. The inline script in index.html applies the
+// stored choice before the first paint.
 
 import { icon, MOON, SUN } from "./icons";
 
@@ -24,11 +24,9 @@ export function storeTheme(theme: Theme, storage: ThemeStorage | null = safeLoca
   }
 }
 
-/** The theme in use: the chosen one, or the system's. */
+/** The theme in use: the chosen one, or light. */
 export function currentTheme(): Theme {
-  const chosen = document.documentElement.dataset.theme;
-  if (chosen === "light" || chosen === "dark") return chosen;
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
 /** Sets and remembers `theme`, and tells `onThemeChange` listeners. */
@@ -38,15 +36,10 @@ export function setTheme(theme: Theme): void {
   document.dispatchEvent(new Event(THEME_EVENT));
 }
 
-/** Calls `listener` whenever the theme in use may have changed: by the button or by the system. */
+/** Calls `listener` whenever the button switches the theme. */
 export function onThemeChange(listener: () => void): () => void {
-  const scheme = matchMedia("(prefers-color-scheme: dark)");
-  scheme.addEventListener("change", listener);
   document.addEventListener(THEME_EVENT, listener);
-  return () => {
-    scheme.removeEventListener("change", listener);
-    document.removeEventListener(THEME_EVENT, listener);
-  };
+  return () => document.removeEventListener(THEME_EVENT, listener);
 }
 
 /**

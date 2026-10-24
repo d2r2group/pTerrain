@@ -110,7 +110,7 @@ describe("stablePhase", () => {
     expect(stablePhase(190, 101.325, params)).toBe("s");
     expect(stablePhase(200, 101.325, params)).toBe("v");
     expect(stablePhase(240, 3000, params)).toBe("l");
-    // The s-l line slopes forward: just above T_t at 5 MPa it is still solid.
+    // The s-l line slopes forward: just above T_tp at 5 MPa it is still solid.
     expect(stablePhase(params.Tt + 0.5, 5000, params)).toBe("s");
   });
 
@@ -159,13 +159,13 @@ describe("reference data", () => {
     expect(Math.abs(transitionT(h2o.params, ["s", "l"], 101.325) - 273.152)).toBeLessThan(0.01);
   });
 
-  it("H₂O: vapour pressure of water and of ice within 3 %", () => {
+  it("H₂O: vapor pressure of water and of ice within 3 %", () => {
     within(transitionP(h2o.params, ["l", "v"], 298.15), 3.17, 0.03);
     within(transitionP(h2o.params, ["l", "v"], 353.15), 47.4, 0.03);
     within(transitionP(h2o.params, ["s", "v"], 253.15), 0.1035, 0.03);
   });
 
-  it("CO₂: sublimation point at 1 atm within 2 K, vapour pressure at 233 K within 10 %", () => {
+  it("CO₂: sublimation point at 1 atm within 2 K, vapor pressure at 233 K within 10 %", () => {
     expect(Math.abs(transitionT(co2.params, ["s", "v"], 101.325) - 194.69)).toBeLessThan(2);
     within(transitionP(co2.params, ["l", "v"], 233), 1000, 0.1);
   });
@@ -287,7 +287,7 @@ describe("boundary", () => {
         if (!a || !b) throw new Error("empty segment");
         return (b.p - a.p) / (b.T - a.T);
       });
-    // About −13.5 MPa/K and +4.7 MPa/K, bent a little by the c_p terms away from T_t.
+    // About −13.5 MPa/K and +4.7 MPa/K, bent a little by the c_p terms away from T_tp.
     for (const s of slope(h2o.params, h2o.window)) expect(s / -13.5e3).toBeCloseTo(1, 1);
     for (const s of slope(co2.params, co2.window)) expect(s / 4.7e3).toBeCloseTo(1, 1);
   });
@@ -375,7 +375,7 @@ describe("crossings", () => {
     // Water boils at about 319 K under 10 kPa.
     expect(lv?.T).toBeGreaterThan(315);
     expect(lv?.T).toBeLessThan(323);
-    // Above p_t the s-v crossing of water is metastable, so there is no stable one.
+    // Above p_tp the s-v crossing of water is metastable, so there is no stable one.
     expect(stableCrossing(isobar, ["s", "v"], h2o.params, h2o.window)).toBeUndefined();
   });
 
@@ -472,12 +472,12 @@ describe("validate", () => {
     ["Tmin", (_, window) => (window.Tmin = 0)],
     ["pmin", (_, window) => (window.pmin = 0)],
     ["window", (_, window) => (window.pmax = window.pmin)],
-    // T_t = 273.16 K lies under T_min.
+    // T_tp = 273.16 K lies under T_min.
     ["tripleInWindow", (_, window) => (window.Tmin = 280)],
     // S_s(200 K) = 0 + 37.77 ln(200/273.16) < 0.
     ["entropy", (params) => (params.Ss = 0)],
     // 3 · 0.0197 L/mol · 40 MPa = 2358 J/mol > R · 200 K = 1663 J/mol.
-    ["vapourDensity", (_, window) => (window.pmax = 40000)],
+    ["vaporDensity", (_, window) => (window.pmax = 40000)],
     // c_p,s = 200 J/(mol·K) bends the s-l line back into a window above 250 K.
     [
       "singleCrossing",
@@ -489,7 +489,7 @@ describe("validate", () => {
     // The s-v line meets T_min = 200 K at 1.6e-4 kPa.
     ["sublimationEdge", (_, window) => (window.pmin = 1e-4)],
     // The l-v line meets T_max = 350 K at 41.3 kPa.
-    ["vaporisationEdge", (_, window) => (window.pmax = 50)],
+    ["vaporizationEdge", (_, window) => (window.pmax = 50)],
   ];
 
   it.each(broken)("rejects parameters that break %s", (check, mutate) => {
@@ -528,7 +528,7 @@ describe("validate", () => {
     "%s: the l-v line must leave the window through p_max, not T_max",
     (_, { params, window }, pmax, Tmax) => {
       const high = { ...window, pmax };
-      expect(validate(params, high).map((issue) => issue.check)).toEqual(["vaporisationEdge"]);
+      expect(validate(params, high).map((issue) => issue.check)).toEqual(["vaporizationEdge"]);
       expect(validate(params, { ...high, Tmax })).toEqual([]);
       // In the presets the stable l-v line ends on the p_max edge, below T_max.
       const lv = boundary("l", "v", params, window).find((seg) => seg.stable)!.points;
@@ -590,7 +590,7 @@ describe("cutLimits", () => {
   );
 
   it("is the whole window when no stable boundary lies in it", () => {
-    // Vapour only, far above the l-v line.
+    // Vapor only, far above the l-v line.
     const hot: PlotWindow = { Tmin: 400, Tmax: 500, pmin: 0.01, pmax: 30 };
     expect(cutLimits(h2o.params, hot)).toEqual({ isobar: [0.01, 30], isotherm: [400, 500] });
   });

@@ -45,7 +45,7 @@ export function boundary(
   if (i === j) throw new Error("boundary: the two phases must differ");
   const k = thirdPhase(i, j);
 
-  // The vapour lines are solved for p along isotherms: below RT/V_i G_v − G_i rises
+  // The vapor lines are solved for p along isotherms: below RT/V_i G_v − G_i rises
   // monotonically with p, so the root is unique. The s-l line can be steep, so it is solved for
   // T along isobars, where `validate` guarantees at most one crossing.
   const alongT = i === "v" || j === "v";

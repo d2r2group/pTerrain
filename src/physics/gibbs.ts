@@ -18,7 +18,7 @@ export interface Params {
   pt: number;
   /** Enthalpy of fusion at the triple point, kJ/mol. */
   dHfus: number;
-  /** Enthalpy of vaporisation at the triple point, kJ/mol. */
+  /** Enthalpy of vaporization at the triple point, kJ/mol. */
   dHvap: number;
   /** Molar entropy of the solid at the triple point, J/(mol·K). */
   Ss: number;
@@ -35,7 +35,7 @@ export interface Params {
 /**
  * An extra c (p − p_ref(T)) in the G of a condensed phase, J/mol with c in L/mol and p in kPa.
  * It adds c to that phase's volume, which tilts the s-l line, and vanishes on the curve p_ref(T),
- * which exaggerate.ts sets to that phase's own vapour line, so that line does not move.
+ * which exaggerate.ts sets to that phase's own vapor line, so that line does not move.
  */
 export interface Stretch {
   phase: "s" | "l";
@@ -62,8 +62,8 @@ export function tripleEntropy(phase: Phase, params: Params): number {
 }
 
 /**
- * Molar entropy −∂G/∂T, J/(mol·K): S_i + c_p,i ln(T/T_t), and for the ideal-gas vapour also
- * − R ln(p/p_t); a `stretch` adds c dp_ref/dT to its phase.
+ * Molar entropy −∂G/∂T, J/(mol·K): S_i + c_p,i ln(T/T_tp), and for the ideal-gas vapor also
+ * − R ln(p/p_tp); a `stretch` adds c dp_ref/dT to its phase.
  */
 export function entropy(phase: Phase, T: number, p: number, params: Params): number {
   const S = tripleEntropy(phase, params) + params.cp[phase] * Math.log(T / params.Tt);
@@ -77,7 +77,7 @@ export function condensedVolume(phase: "s" | "l", params: Params): number {
   return phase === "s" ? params.Vs : params.Vl;
 }
 
-/** Molar volume, L/mol: constant for s and l (plus c under a `stretch`), RT/p for the vapour. */
+/** Molar volume, L/mol: constant for s and l (plus c under a `stretch`), RT/p for the vapor. */
 export function volume(phase: Phase, T: number, p: number, params: Params): number {
   if (phase === "v") return (R * T) / p;
   const V = condensedVolume(phase, params);
@@ -142,7 +142,7 @@ export function stablePhase(T: number, p: number, params: Params): Phase {
   return best;
 }
 
-/** The triple point (T_t, p_t), where all three G vanish by construction. */
+/** The triple point (T_tp, p_tp), where all three G vanish by construction. */
 export function triplePoint(params: Params): { T: number; p: number } {
   return { T: params.Tt, p: params.pt };
 }

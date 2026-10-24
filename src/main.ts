@@ -4,13 +4,13 @@ import "@fontsource/lato/400-italic.css";
 import "@fontsource/lato/700.css";
 import "./style.css";
 import { PRESETS } from "./physics/presets";
+import { createAbout } from "./ui/about";
 import {
   createCutInput,
   createExaggerateToggle,
   createMetastableToggle,
   createModeToggle,
   createReadout,
-  createSnapButton,
 } from "./ui/controls";
 import { createLogo } from "./ui/logo";
 import { createFooter } from "./ui/modelDetails";
@@ -24,12 +24,13 @@ import { storedUnit } from "./ui/units";
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("pTerrain: #app element is missing from index.html");
 
-// From top to bottom: the logo and the main row of controls, with the theme button at the far
-// right; a bar with the substance menu, the Metastable toggle and Share; then the plots, as wide
-// as the bar, with a column beside both on wide screens, or below on narrow ones: the cut input
-// with the pressure unit, the exaggerated s-l slope checkbox, the readout (for screen readers
-// only) and the substance panel. All four are items of one grid, so that on a narrow phone the
-// header's and the bar's buttons can share a row. The footer follows, after <main>.
+// From top to bottom: the logo and the main row of controls (the p | T toggle and the info
+// button), with the theme button at the far right; a bar with the substance menu, the Metastable
+// toggle and Share; then the plots, as wide as the bar, with a column beside both on wide
+// screens, or below on narrow ones: the cut input with the pressure unit, the exaggerated s-l
+// slope checkbox, the readout (for screen readers only) and the substance panel. All four are
+// items of one grid, so that on a narrow phone the header's and the bar's buttons can share a
+// row. The footer follows, after <main>.
 const header = document.createElement("header");
 const mainRow = document.createElement("div");
 mainRow.className = "main-row";
@@ -53,11 +54,12 @@ controls.setAttribute("aria-label", "Cut and substance");
 layout.append(header, plotBar, plots, controls);
 app.replaceChildren(layout);
 
-const store = new Store(PRESETS.h2o, "isobar", storedUnit());
-createLogo(header);
+const store = new Store(PRESETS.co2, "isobar", storedUnit());
+createLogo(header, store);
 header.append(mainRow);
 createModeToggle(mainRow, store);
-createSnapButton(mainRow, store);
+// Inside #app, so that the copies in it compact with the page's controls.
+createAbout(mainRow, app);
 createThemeToggle(header);
 createMetastableToggle(plotBar, store);
 createCutInput(controls, store);

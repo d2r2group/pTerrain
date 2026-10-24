@@ -70,8 +70,8 @@ export function fromCutAxis(mode: Mode, u: number): number {
 }
 
 /**
- * Starting cuts: an isobar halfway between p_t and p_max on the log axis, which crosses s-l and
- * l-v, and an isotherm a twentieth of the T range below T_t. Both are clamped into `limits`.
+ * Starting cuts: an isobar halfway between p_tp and p_max on the log axis, which crosses s-l and
+ * l-v, and an isotherm a twentieth of the T range below T_tp. Both are clamped into `limits`.
  */
 export function defaultCuts(
   params: Params,
@@ -162,7 +162,7 @@ export class Store {
     this.#update({ params, window }, resetCuts);
   }
 
-  /** Moves the current mode's cut through the triple point: p* = p_t or T* = T_t. */
+  /** Moves the current mode's cut through the triple point: p* = p_tp or T* = T_tp. */
   snapToTriplePoint(): void {
     const { mode, params } = this.#state;
     this.setCut(mode === "isobar" ? params.pt : params.Tt);

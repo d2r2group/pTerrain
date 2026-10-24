@@ -1,4 +1,4 @@
-// The automatic window: centred on the triple point in T and in log p, like
+// The automatic window: centered on the triple point in T and in log p, like
 // the earlier hand-tuned preset windows, with the s-v line leaving through p_min and the l-v line
 // through p_max, and rounded edges.
 
@@ -6,7 +6,7 @@ import { condensedVolume, gibbs, R, type Params, type PlotWindow } from "./gibbs
 import { bisect } from "./roots";
 import { validate } from "./validity";
 
-/** The half-width of the T range, as a fraction of T_t (hand-picked windows had 0.27, 0.26). */
+/** The half-width of the T range, as a fraction of T_tp (hand-picked windows had 0.27, 0.26). */
 const SPAN = 0.27;
 /** The fraction of the room to the s-v and l-v lines that the p range takes in log p. */
 const P_MARGIN = 0.9;
@@ -17,8 +17,8 @@ const RETRIES = 8;
 const NICE = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
 
 /**
- * The window for these parameters: T_t (1 ∓ f) to the nearest 5 K, and p_t / r to p_t r, where
- * log r is P_MARGIN of the smaller log distance from p_t to the s-v line at T_min and to the l-v
+ * The window for these parameters: T_tp (1 ∓ f) to the nearest 5 K, and p_tp / r to p_tp r, where
+ * log r is P_MARGIN of the smaller log distance from p_tp to the s-v line at T_min and to the l-v
  * line at T_max, each edge rounded to a NICE value. Starting from f = SPAN, f shrinks by SHRINK
  * while the window fails `validate`, up to RETRIES times; if none passes, the first try is
  * returned, so that validating it gives the issues of the first try.
@@ -38,8 +38,8 @@ function windowFor(params: Params, f: number): PlotWindow {
   const { Tt, pt } = params;
   const Tmin = roundTo5(Tt * (1 - f));
   const Tmax = roundTo5(Tt * (1 + f));
-  const below = Math.log(pt / vapourPressure("s", Tmin, params));
-  const above = Math.log(vapourPressure("l", Tmax, params) / pt);
+  const below = Math.log(pt / vaporPressure("s", Tmin, params));
+  const above = Math.log(vaporPressure("l", Tmax, params) / pt);
   // Without both lines (parameters that `validate` rejects anyway) a decade either side.
   const room = Math.min(below, above);
   const lnr = P_MARGIN * (room > 0 ? room : Math.LN10);
@@ -50,7 +50,7 @@ function windowFor(params: Params, f: number): PlotWindow {
  * The pressure where G_i = G_v on the isotherm T, or NaN where the bracket holds no crossing.
  * Below RT/V_i, G_i − G_v falls with p, so the root is unique.
  */
-function vapourPressure(phase: "s" | "l", T: number, params: Params): number {
+function vaporPressure(phase: "s" | "l", T: number, params: Params): number {
   const f = (u: number) =>
     gibbs(phase, T, Math.exp(u), params) - gibbs("v", T, Math.exp(u), params);
   const lo = Math.log(params.pt) - 80;

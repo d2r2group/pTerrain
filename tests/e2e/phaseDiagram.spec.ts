@@ -11,7 +11,8 @@ test.beforeEach(async ({ page }) => {
   const seen: string[] = [];
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
-  await page.goto("./");
+  // The tests are written for H₂O; a first visit opens on CO₂ (tested in controls.spec.ts).
+  await page.goto("./#h2o");
   await expect(page.locator(".phase-diagram svg")).toBeVisible();
 });
 
@@ -38,14 +39,14 @@ test("draws the regions, the three boundaries and the triple point", async ({ pa
   }
   await expect(diagram.locator(".triple-point")).toHaveCount(1);
 
-  // The bitmap holds the three phase colours (at the region opacity).
-  const colours = await page.locator("canvas.regions").evaluate((el: HTMLCanvasElement) => {
+  // The bitmap holds the three phase colors (at the region opacity).
+  const colors = await page.locator("canvas.regions").evaluate((el: HTMLCanvasElement) => {
     const { data } = el.getContext("2d")!.getImageData(0, 0, el.width, el.height);
     const seen = new Set<string>();
     for (let k = 0; k < data.length; k += 4) seen.add(`${data[k]},${data[k + 1]},${data[k + 2]}`);
     return seen.size;
   });
-  expect(colours).toBe(3);
+  expect(colors).toBe(3);
 });
 
 test("the toggle swaps the axes, and each mode keeps its own cut", async ({ page }) => {
@@ -304,7 +305,7 @@ test("the regions carry their names, and there is no legend", async ({ page }) =
   for (const mode of ["constant p", "constant T"] as const) {
     await setMode(page, mode);
     const { labels } = await readText(page);
-    expect(labels.map((l) => l.text)).toEqual(["solid", "liquid", "vapour"]);
+    expect(labels.map((l) => l.text)).toEqual(["solid", "liquid", "vapor"]);
     await expect(page.locator(".phase-diagram .phase-labels")).toHaveAttribute(
       "aria-hidden",
       "true",
@@ -329,7 +330,7 @@ test("the bold values match the readout's stable rows and sit on their guide lin
   expect(values.map((v) => v.text)).toEqual(await stableRows(page));
   expect(values.length).toBe(2);
   for (const [k, v] of values.entries()) {
-    // Each value is anchored on its guide; its rendered box is centred there up to the font's
+    // Each value is anchored on its guide; its rendered box is centered there up to the font's
     // hinting, which differs by platform (half a px on Linux).
     expect(Math.abs(v.anchor - guides[k]!)).toBeLessThan(0.01);
     expect(Math.abs(v.x + v.width / 2 - guides[k]!)).toBeLessThanOrEqual(1);
@@ -365,7 +366,7 @@ test("dragging the cut moves the values, and toggling the axes relabels them", a
 test("values that would overlap are pushed apart, and their ticks stay at the true x", async ({
   page,
 }) => {
-  // Just above p_t the s-l and l-v crossings are about a kelvin apart.
+  // Just above p_tp the s-l and l-v crossings are about a kelvin apart.
   const number = page.getByRole("spinbutton", { name: /Isobar pressure/ });
   await number.fill("0.65");
   await number.press("Enter");
@@ -389,7 +390,7 @@ test("the metastable branches add no value, and the triple point gets one", asyn
   expect(await count()).toBe(shown);
   await page.getByRole("button", { name: "Metastable" }).click();
   expect(await count()).toBe(shown);
-  await page.getByRole("button", { name: "Snap to triple point" }).click();
+  await page.getByRole("button", { name: "pTerrain" }).click();
   expect((await readText(page)).values.map((v) => v.text)).toEqual(["273.2 K"]);
 });
 
@@ -445,7 +446,7 @@ test("the exaggerate checkbox switches every plot to the exaggerated model", asy
   expect(
     Math.hypot(drawn.slBottom[0] - real.slBottom[0], drawn.slBottom[1] - real.slBottom[1]),
   ).toBeLessThan(0.5);
-  // The liquid and the vapour are untouched, so l-v is the same line; s-v moves under half a px.
+  // The liquid and the vapor are untouched, so l-v is the same line; s-v moves under half a px.
   expect(drawn.lv).toBe(real.lv);
   const [a, b] = [points(real.sv), points(drawn.sv)];
   expect(b).toHaveLength(a.length);
@@ -472,7 +473,7 @@ test("the exaggerate checkbox switches every plot to the exaggerated model", asy
   await expect(page.locator('.readout li[data-pair="s-l"]').first()).toHaveText(
     /^solid–liquid, slope exaggerated: /,
   );
-  // "slope exaggerated", in the axes' grey, up and to the left of the line's top end.
+  // "slope exaggerated", in the axes' gray, up and to the left of the line's top end.
   await expect(note).toBeVisible();
   await expect(note).toHaveText("slope exaggerated");
   const svg = (await page.locator(".phase-diagram svg").boundingBox())!;
@@ -524,7 +525,7 @@ test("the names follow the regions of the model, also after a substance change m
   await page.getByRole("combobox", { name: "Substance" }).selectOption("co2");
   await expect(page.locator(".phase-diagram")).not.toHaveClass(/swapping/);
   await expect(page.locator(".exaggerate .factor")).toHaveText(/^\(Δv_fus ×\d+, schematic\)$/);
-  // Each name sits on its own phase's colour in the region bitmap.
+  // Each name sits on its own phase's color in the region bitmap.
   const ok = await page.evaluate(() => {
     const canvas = document.querySelector<HTMLCanvasElement>("canvas.regions")!;
     const ctx = canvas.getContext("2d")!;
@@ -534,18 +535,18 @@ test("the names follow the regions of the model, also after a substance change m
       const h = style.getPropertyValue(v).trim();
       return [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
     };
-    const colour: Record<string, number[]> = {
+    const color: Record<string, number[]> = {
       s: rgb("--phase-solid"),
       l: rgb("--phase-liquid"),
-      v: rgb("--phase-vapour"),
+      v: rgb("--phase-vapor"),
     };
-    // The bitmap is drawn at the region opacity, so the nearest phase colour is taken.
+    // The bitmap is drawn at the region opacity, so the nearest phase color is taken.
     return [...document.querySelectorAll<SVGTextElement>(".phase-label")].map((el) => {
       const x = Math.round(Number(el.getAttribute("x")) * scale);
       const y = Math.round(Number(el.getAttribute("y")) * scale);
       const px = [...ctx.getImageData(x, y, 1, 1).data.slice(0, 3)];
       const dist = (c: number[]) => c.reduce((sum, v, k) => sum + (v - px[k]!) ** 2, 0);
-      const nearest = Object.entries(colour).reduce((a, b) => (dist(b[1]) < dist(a[1]) ? b : a));
+      const nearest = Object.entries(color).reduce((a, b) => (dist(b[1]) < dist(a[1]) ? b : a));
       return nearest[0] === el.dataset.phase;
     });
   });

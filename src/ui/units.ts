@@ -1,5 +1,5 @@
 // The pressure unit and the axis scales. The store keeps every pressure in kPa,
-// since V (p − p_t) in L/mol × kPa is J/mol; the unit is applied only where a pressure is shown
+// since V (p − p_tp) in L/mol × kPa is J/mol; the unit is applied only where a pressure is shown
 // or typed, through the conversions here. The p axis is logarithmic.
 
 import {

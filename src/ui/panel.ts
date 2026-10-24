@@ -44,7 +44,7 @@ export function fitSvg(
 /** The space between the y-axis label and the widest tick label, in CSS px. */
 const Y_LABEL_GAP = 4;
 
-/** Each panel's y-axis label, with its axis and where to centre it, as last placed. */
+/** Each panel's y-axis label, with its axis and where to center it, as last placed. */
 const yLabels = new Map<
   SVGTextElement,
   { yAxis: SVGGElement; height: number; margin: { top: number; left: number } }

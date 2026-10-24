@@ -8,7 +8,7 @@ import { cutOf, type State } from "./state";
 import { formatPressure, formatTemperature } from "./units";
 
 /** The phase names, shown on the diagram's regions and named by the readout. */
-export const PHASE_NAME: Record<Phase, string> = { s: "solid", l: "liquid", v: "vapour" };
+export const PHASE_NAME: Record<Phase, string> = { s: "solid", l: "liquid", v: "vapor" };
 
 /** One line of the readout: where two G curves cross along the cut. */
 export interface ReadoutRow {

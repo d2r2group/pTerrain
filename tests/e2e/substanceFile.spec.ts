@@ -17,8 +17,9 @@ const slLine = (page: Page) => page.locator('.phase-diagram path.boundary.stable
 
 const errors = new WeakMap<Page, string[]>();
 
-/** Opens the page (at `hash`, if given) and the Parameters panel. */
-async function open(page: Page, hash = "") {
+/** Opens the page at `hash` (by default the H₂O link, as the tests are written for H₂O) and the
+ * Parameters panel. */
+async function open(page: Page, hash = "#h2o") {
   const seen = errors.get(page) ?? [];
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
@@ -85,7 +86,7 @@ async function stubClipboardNow(page: Page) {
 const copied = (page: Page) =>
   page.evaluate(() => (window as unknown as { copied: string[] }).copied);
 
-test("the name field shows H₂O at first and follows the menu", async ({ page }) => {
+test("the name field shows the substance opened and follows the menu", async ({ page }) => {
   await open(page);
   await expect(nameField(page)).toHaveValue("H₂O");
   await expect(nameField(page)).toHaveAttribute("maxlength", "40");
@@ -187,7 +188,7 @@ test("an exported Custom file, imported after a reload, restores the substance a
   await expect(field(page, "pmax")).toHaveValue(String(Number((120 / 101.325).toPrecision(12))));
   await expect(slLine(page)).toHaveAttribute("d", diagram!);
   await expect(applyButton(page)).toBeDisabled();
-  // The default isobar, halfway between p_t and p_max on the log axis, in atm.
+  // The default isobar, halfway between p_tp and p_max on the log axis, in atm.
   expect(await value(page)).toBeCloseTo(Math.sqrt(50 * 120) / 101.325, 9);
   // The same file again imports it again.
   await select(page).selectOption("h2o");
@@ -291,8 +292,8 @@ test("a link pasted into an open tab applies through hashchange", async ({ page 
 test("a malformed link warns and leaves the default substance", async ({ page }) => {
   await open(page, "#2,x,1");
   await expect(alert(page)).toHaveText("Not a pTerrain link: version 2 is not supported.");
-  await expect(select(page)).toHaveValue("h2o");
-  await expect(nameField(page)).toHaveValue("H₂O");
+  await expect(select(page)).toHaveValue("co2");
+  await expect(nameField(page)).toHaveValue("CO₂");
   expect(new URL(page.url()).hash).toBe("");
   // A link whose substance fails `validate` lists the issues.
   await page.evaluate(() => (location.hash = "#1,Bad,300,50,-1,12.5,33.3,2,3.5,0,0,0"));

@@ -24,7 +24,7 @@ function position(params: Params, window: PlotWindow): { across: number; up: num
 
 describe("autoWindow", () => {
   it.each(substances)(
-    "%s: passes validate, centres the triple point and has rounded edges",
+    "%s: passes validate, centers the triple point and has rounded edges",
     (_, { params }) => {
       const window = autoWindow(params);
       expect(validate(params, window)).toEqual([]);
@@ -86,14 +86,14 @@ describe("autoWindow", () => {
       const issues = validate(params, window);
       if (issues.length > 0) {
         failed++;
-        // The first try: f = 0.27, so the T range is T_t (1 ∓ 0.27) to the nearest 5 K.
+        // The first try: f = 0.27, so the T range is T_tp (1 ∓ 0.27) to the nearest 5 K.
         expect(window.Tmin).toBe(5 * Math.round((0.73 * params.Tt) / 5));
         expect(window.Tmax).toBe(5 * Math.round((1.27 * params.Tt) / 5));
       }
-      // Rounding the edges never puts a vapour line through the side of the window.
+      // Rounding the edges never puts a vapor line through the side of the window.
       const checks = issues.map((issue) => issue.check);
       expect(checks).not.toContain("sublimationEdge");
-      expect(checks).not.toContain("vaporisationEdge");
+      expect(checks).not.toContain("vaporizationEdge");
     }
     expect(failed).toBeLessThan(tried / 4);
   }, 30_000); // A fixed sweep: well past vitest's 5 s default on a slow CI runner.

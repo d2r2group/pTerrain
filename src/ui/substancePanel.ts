@@ -46,10 +46,10 @@ const CHECK_FIELDS: Record<ValidityCheck, readonly FieldKey[]> = {
   window: ["Tmax", "pmax"],
   tripleInWindow: ["Tmin", "Tmax", "pmin", "pmax"],
   entropy: [],
-  vapourDensity: [],
+  vaporDensity: [],
   singleCrossing: [],
   sublimationEdge: ["Tmin", "pmin"],
-  vaporisationEdge: ["Tmax", "pmax"],
+  vaporizationEdge: ["Tmax", "pmax"],
 };
 
 /** A field value for display, without the rounding noise of a unit conversion. */

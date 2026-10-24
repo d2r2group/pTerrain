@@ -10,7 +10,8 @@ test.beforeEach(async ({ page }) => {
   const seen: string[] = [];
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
-  await page.goto("./");
+  // The tests are written for H₂O; a first visit opens on CO₂ (tested in controls.spec.ts).
+  await page.goto("./#h2o");
   await expect(slice(page).locator("path.curve").first()).toBeAttached();
 });
 
@@ -32,7 +33,7 @@ async function setMode(page: Page, label: "constant p" | "constant T") {
 /** Client-space geometry of the markers and guides of both panels, read in the page. */
 function readGuides(page: Page) {
   return page.evaluate(() => {
-    const centre = (el: Element) => {
+    const center = (el: Element) => {
       const r = el.getBoundingClientRect();
       return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
     };
@@ -41,7 +42,7 @@ function readGuides(page: Page) {
       return {
         svg: root.querySelector("svg")!.getBoundingClientRect().toJSON() as DOMRect,
         markers: [...root.querySelectorAll(".crossing-marker")].map((el) => ({
-          ...centre(el),
+          ...center(el),
           pair: el.getAttribute("data-pair"),
           stable: el.classList.contains("stable"),
         })),
@@ -241,7 +242,7 @@ test("the two plot areas are the same size, each framed on the sides without an 
   expect(await d(".slice-panel")).toMatch(/^M0,\d+H\d+V0$/);
 });
 
-test("the panel is shaded under the envelope in the stable phase's colour", async ({ page }) => {
+test("the panel is shaded under the envelope in the stable phase's color", async ({ page }) => {
   for (const mode of ["constant p", "constant T"] as const) {
     await setMode(page, mode);
     const read = () =>
@@ -249,10 +250,10 @@ test("the panel is shaded under the envelope in the stable phase's colour", asyn
         const root = document.querySelector(".slice-panel")!;
         const box = (el: Element) => el.getBoundingClientRect();
         const style = getComputedStyle(root);
-        const colour: Record<string, string> = {
+        const color: Record<string, string> = {
           s: style.getPropertyValue("--phase-solid").trim(),
           l: style.getPropertyValue("--phase-liquid").trim(),
-          v: style.getPropertyValue("--phase-vapour").trim(),
+          v: style.getPropertyValue("--phase-vapor").trim(),
         };
         const hex = (rgb: string) =>
           "#" +
@@ -268,7 +269,7 @@ test("the panel is shaded under the envelope in the stable phase's colour", asyn
             phase: el.getAttribute("data-phase")!,
             left: box(el).x,
             right: box(el).x + box(el).width,
-            fill: hex(getComputedStyle(el).fill) === colour[el.getAttribute("data-phase")!],
+            fill: hex(getComputedStyle(el).fill) === color[el.getAttribute("data-phase")!],
             shown: getComputedStyle(el).display !== "none",
           })),
           stable: [...root.querySelectorAll(".crossing-marker.stable")].map(
@@ -284,7 +285,7 @@ test("the panel is shaded under the envelope in the stable phase's colour", asyn
     shades.sort((a, b) => a.left - b.left);
     expect(shades.map((s) => s.phase)).toEqual(envelope);
     expect(shades.every((s) => s.fill && s.shown)).toBe(true);
-    // The strip spans the cut, and changes colour exactly at the stable crossings.
+    // The strip spans the cut, and changes color exactly at the stable crossings.
     expect(Math.abs(shades[0]!.left - plot.left)).toBeLessThan(0.5);
     expect(Math.abs(shades.at(-1)!.right - plot.right)).toBeLessThan(1);
     for (let k = 1; k < shades.length; k++) {

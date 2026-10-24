@@ -17,10 +17,10 @@ export type ValidityCheck =
   | "window"
   | "tripleInWindow"
   | "entropy"
-  | "vapourDensity"
+  | "vaporDensity"
   | "singleCrossing"
   | "sublimationEdge"
-  | "vaporisationEdge";
+  | "vaporizationEdge";
 
 export interface ValidityIssue {
   check: ValidityCheck;
@@ -100,8 +100,8 @@ export function validate(params: Params, window: PlotWindow): ValidityIssue[] {
   );
   if (dense) {
     fail(
-      "vapourDensity",
-      "The vapour must be at least three times less dense than s and l: 3 v p_max < R T_min.",
+      "vaporDensity",
+      "The vapor must be at least three times less dense than s and l: 3 v p_max < R T_min.",
     );
   }
 
@@ -111,13 +111,13 @@ export function validate(params: Params, window: PlotWindow): ValidityIssue[] {
   if (sublimationOnTmin(params, window)) {
     fail(
       "sublimationEdge",
-      "The solid–vapour line must leave the window through p_min, not T_min: raise p_min or lower T_min.",
+      "The solid–vapor line must leave the window through p_min, not T_min: raise p_min or lower T_min.",
     );
   }
-  if (vaporisationOnTmax(params, window)) {
+  if (vaporizationOnTmax(params, window)) {
     fail(
-      "vaporisationEdge",
-      "The liquid–vapour line must leave the window through p_max, not T_max: lower p_max or raise T_max.",
+      "vaporizationEdge",
+      "The liquid–vapor line must leave the window through p_max, not T_max: lower p_max or raise T_max.",
     );
   }
   return issues;
@@ -127,7 +127,7 @@ export function validate(params: Params, window: PlotWindow): ValidityIssue[] {
  * Whether the stable l-v line meets the T_max edge below p_max. It must meet p_max instead, as
  * the s-v line meets p_min, so that it runs into the top edge rather than the right one.
  */
-function vaporisationOnTmax(params: Params, window: PlotWindow): boolean {
+function vaporizationOnTmax(params: Params, window: PlotWindow): boolean {
   const edge: Cut = { kind: "isotherm", T: window.Tmax };
   return crossings(edge, params, window).some(
     (c) => c.stable && c.phases[0] === "l" && c.phases[1] === "v" && c.p < window.pmax,
@@ -137,7 +137,7 @@ function vaporisationOnTmax(params: Params, window: PlotWindow): boolean {
 /**
  * Whether the stable s-v line meets the T_min edge above p_min. It must meet p_min instead, so
  * that in constant p mode it runs into the x axis, and every isobar below it crosses it inside
- * the window rather than lying in the vapour only.
+ * the window rather than lying in the vapor only.
  */
 function sublimationOnTmin(params: Params, window: PlotWindow): boolean {
   const edge: Cut = { kind: "isotherm", T: window.Tmin };

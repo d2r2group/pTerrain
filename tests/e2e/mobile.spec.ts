@@ -67,11 +67,11 @@ test("the header fits one row, the controls sit below the plots, and nothing scr
   const boxes = await headerItems.evaluateAll((els) =>
     els.map((el) => {
       const r = el.getBoundingClientRect();
-      return { left: r.left, right: r.right, centre: r.top + r.height / 2 };
+      return { left: r.left, right: r.right, center: r.top + r.height / 2 };
     }),
   );
   expect(boxes).toHaveLength(4);
-  for (const b of boxes) expect(Math.abs(b.centre - boxes[0]!.centre)).toBeLessThan(3);
+  for (const b of boxes) expect(Math.abs(b.center - boxes[0]!.center)).toBeLessThan(3);
   for (let k = 1; k < boxes.length; k++)
     expect(boxes[k]!.left).toBeGreaterThan(boxes[k - 1]!.right);
   expect(boxes.at(-1)!.right).toBeLessThanOrEqual(viewport.width);
@@ -101,9 +101,9 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
   await page.setViewportSize({ width: 400, height: 800 });
   expect((await page.locator(".mode-toggle").boundingBox())!.width).toBe(44);
   const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
-  const buttons = [".mode-toggle", ".snap", ".metastable-toggle", ".plot-bar .share"];
+  const buttons = [".mode-toggle", ".metastable-toggle", ".plot-bar .share"];
   await page.setViewportSize({ width: 360, height: 800 });
-  const centres = await page
+  const centers = await page
     .locator("header .logo, .main-row > *, header .theme-toggle")
     .evaluateAll((els) =>
       els.map((el) => {
@@ -111,30 +111,34 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
         return r.top + r.height / 2;
       }),
     );
-  for (const c of centres) expect(Math.abs(c - centres[0]!)).toBeLessThan(3);
+  for (const c of centers) expect(Math.abs(c - centers[0]!)).toBeLessThan(3);
   // Metastable and Share are still right of the menu.
   const menu = await box(".plot-bar select");
   expect(Math.abs((await box(".metastable-toggle")).y - menu.y)).toBeLessThan(1);
 
-  // Narrower: the logo and the theme button; the four buttons, evenly spread over the page; the
-  // menu, as wide as the page; then the plots.
+  // Narrower: the logo, the info button and the theme button; the three buttons, evenly spread
+  // over the page; the menu, as wide as the page; then the plots.
   for (const width of [359, 320, 280]) {
     await page.setViewportSize({ width, height: 800 });
     const logo = await box(".logo");
     const theme = await box("header .theme-toggle");
+    const info = await box(".info-button");
     const plots = await box(".plots");
     const select = await box(".plot-bar select");
     const row = await Promise.all(buttons.map(box));
     expect(Math.abs(theme.y + theme.height / 2 - (logo.y + logo.height / 2))).toBeLessThan(3);
     expect(Math.abs(logo.x - plots.x), `${width}`).toBeLessThan(1);
     expect(Math.abs(theme.x + theme.width - (plots.x + plots.width))).toBeLessThan(1);
+    // The info button stays on the top row, next to the theme button.
+    expect(Math.abs(info.y - theme.y)).toBeLessThan(1);
+    expect(Math.abs(info.x + info.width - theme.x)).toBeLessThan(1);
     for (const b of row) {
       expect(b.width).toBe(44);
       expect(b.y).toBeGreaterThanOrEqual(Math.max(logo.y + logo.height, theme.y + theme.height));
       expect(Math.abs(b.y - row[0]!.y)).toBeLessThan(1);
     }
     expect(Math.abs(row[0]!.x - plots.x)).toBeLessThan(1);
-    expect(Math.abs(row[3]!.x + row[3]!.width - (plots.x + plots.width))).toBeLessThan(1);
+    expect(Math.abs(row[2]!.x + row[2]!.width - (plots.x + plots.width))).toBeLessThan(1);
     const gaps = row.slice(1).map((b, k) => b.x - row[k]!.x);
     for (const g of gaps) expect(Math.abs(g - gaps[0]!), `${width}`).toBeLessThan(1);
     expect(select.y).toBeGreaterThanOrEqual(row[0]!.y + row[0]!.height);
@@ -144,6 +148,22 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
     );
+  }
+});
+
+test("the overlays do not scroll sideways, down to 320 px", async ({ page }) => {
+  // The screen-reader MathML beside each equation is clipped, but would still widen the body.
+  for (const name of ["model-details", "about"]) {
+    for (const width of [412, 360, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      const opener = name === "about" ? ".info-button" : ".model-details-button";
+      await page.locator(opener).first().click();
+      const body = page.locator(`.${name} .dialog-body`);
+      await expect(body).toBeVisible();
+      const [scroll, client] = await body.evaluate((b) => [b.scrollWidth, b.clientWidth]);
+      expect(scroll, `${name} at ${width}`).toBeLessThanOrEqual(client);
+      await page.keyboard.press("Escape");
+    }
   }
 });
 

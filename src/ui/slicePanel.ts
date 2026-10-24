@@ -1,8 +1,8 @@
 // The linked slice panel under the diagram: G(T) along the isobar or
 // G(p) along the isotherm, on the diagram's x scale, with the lower envelope solid, the rest
-// dashed, the panel shaded under the envelope in the stable phase's colour, and a marker and a
+// dashed, the panel shaded under the envelope in the stable phase's color, and a marker and a
 // dotted guide line at each crossing. G is drawn relative to the mean of the three, so that the
-// small gap between s and l is not lost under the vapour's span and no phase is a flat line.
+// small gap between s and l is not lost under the vapor's span and no phase is a flat line.
 
 import { area, axisLeft, axisTop, line, scaleLinear, scaleLog, select } from "d3";
 import { alongRange, type Crossing } from "../physics/crossings";
@@ -77,7 +77,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     const segments = sliceSegments(cut, params, window, { found }).sort(
       (s, t) => Number(s.stable) - Number(t.stable),
     );
-    // Under the envelope, down to the bottom edge, in the stable phase's colour.
+    // Under the envelope, down to the bottom edge, in the stable phase's color.
     const fill = area<[number, number]>(
       ([u]) => x(u),
       size.height,

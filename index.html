@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="light" />
     <title>pTerrain</title>
     <script>
       // Apply the stored theme before the first paint, so the page does not flash.
@@ -12,7 +12,7 @@
         const theme = localStorage.getItem("pterrain-theme");
         if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
       } catch {
-        // Storage is blocked: follow the system.
+        // Storage is blocked: stay light.
       }
     </script>
   </head>

@@ -11,7 +11,8 @@ test.beforeEach(async ({ page }) => {
   const seen: string[] = [];
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
-  await page.goto("./");
+  // The tests are written for H₂O; a first visit opens on CO₂ (tested below).
+  await page.goto("./#h2o");
   await expect(page.locator(".phase-diagram svg")).toBeVisible();
   await page.locator(".parameters summary").click();
 });
@@ -62,23 +63,30 @@ test("the cut handle, slider and number field have distinct names", async ({ pag
   await expect(page.getByRole("slider", { name: "Isotherm temperature T* (K)" })).toHaveCount(1);
 });
 
-test("the preset menu switches the substance and resets the cuts", async ({ page }) => {
+test("a first visit opens on CO₂, first in the menu, which switches the substance and resets the cuts", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await page.locator(".parameters summary").click();
   const select = page.getByRole("combobox", { name: "Substance" });
-  await expect(select).toHaveValue("h2o");
-  await expect(select.locator("option:not([disabled])")).toHaveText(["H₂O", "CO₂", "Custom"]);
-  // H₂O: the s-l line slopes back, so it is further left at the top (by a fraction of a px).
+  await expect(select).toHaveValue("co2");
+  await expect(select.locator("option:not([disabled])")).toHaveText(["CO₂", "H₂O", "Custom"]);
+  // CO₂: the s-l line slopes forward, so it is further right at the top.
   let [top, bottom] = await slEnds(page);
-  expect(top).toBeLessThan(bottom);
+  expect(top).toBeGreaterThan(bottom + 2);
+  // The default isobar lies halfway between p_tp and p_max on the log axis.
+  expect(await value(page)).toBeCloseTo(Math.sqrt(517.964 * 2500), 9);
 
   await handle(page).focus();
   await page.keyboard.press("PageUp");
-  await select.selectOption("co2");
+  await select.selectOption("h2o");
+  // H₂O: the s-l line slopes back, so it is further left at the top (by a fraction of a px).
   [top, bottom] = await slEnds(page);
-  expect(top).toBeGreaterThan(bottom + 2);
-  await expect(field(page, "Vs")).toHaveValue("0.02856");
-  await expect(field(page, "Vl")).toHaveValue("0.037345");
-  // The default isobar lies halfway between p_t and p_max on the log axis.
-  expect(await value(page)).toBeCloseTo(Math.sqrt(517.964 * 2500), 9);
+  expect(top).toBeLessThan(bottom);
+  await expect(field(page, "Vs")).toHaveValue("0.019652");
+  await expect(field(page, "Vl")).toHaveValue("0.018019");
+  expect(await value(page)).toBeCloseTo(Math.sqrt(0.611654 * 25), 9);
 });
 
 test("choosing Custom opens the parameters, and scrolls to them only under the plots", async ({
@@ -136,7 +144,7 @@ test("choosing Custom loads the schematic substance as a starting point", async 
   // V_s < V_l: the s-l line slopes forward, further right at the top.
   const [top, bottom] = await slEnds(page);
   expect(top).toBeGreaterThan(bottom + 5);
-  // The cuts are reset, as for a preset: the isobar halfway between p_t and p_max on the log axis.
+  // The cuts are reset, as for a preset: the isobar halfway between p_tp and p_max on the log axis.
   expect(await value(page)).toBeCloseTo(Math.sqrt(50 * 150), 9);
   // An edit keeps it Custom, and a preset can be chosen again.
   await setField(page, "Vl", "3");
@@ -221,7 +229,7 @@ test("an invalid edit warns only on Apply, and Apply stays enabled", async ({ pa
   await expect(page.getByRole("combobox", { name: "Substance" })).toHaveValue("h2o");
 });
 
-test("with auto, an edited T_t moves the window to keep the triple point in the middle", async ({
+test("with auto, an edited T_tp moves the window to keep the triple point in the middle", async ({
   page,
 }) => {
   await setField(page, "Tt", "280");
@@ -250,7 +258,7 @@ test("unticking auto enables the window fields, and a typed window is applied as
   await number.fill("1000");
   await number.press("Enter");
   expect(await value(page)).toBe(8);
-  // Ticking again greys the fields, and keeps the window until the next Apply.
+  // Ticking again grays the fields, and keeps the window until the next Apply.
   await autoBox(page).check();
   await expect(field(page, "pmax")).toBeDisabled();
   await expect(field(page, "pmax")).toHaveValue("8");
@@ -299,12 +307,12 @@ test("an invalid edit shows a warning and keeps the last valid diagram", async (
   await expect(field(page, "dHfus")).toHaveAttribute("aria-invalid");
   await expect(slLine(page)).toHaveAttribute("d", before!);
 
-  // Breaking a limit over the window: the vapour is too dense at p_max.
+  // Breaking a limit over the window: the vapor is too dense at p_max.
   await setField(page, "dHfus", "6.007");
   await expect(alert).toBeEmpty();
   await untickAuto(page);
   await setField(page, "pmax", "40000");
-  await expect(alert.locator('li[data-check="vapourDensity"]')).toBeVisible();
+  await expect(alert.locator('li[data-check="vaporDensity"]')).toBeVisible();
   await expect(page.locator(".phase-diagram .y-axis .tick").last()).toHaveText("10");
 
   // Choosing a preset again clears the warning and the fields.
@@ -345,12 +353,12 @@ test("the slider and number field set the cut, and snapping goes to the triple p
   });
   expect(await value(page)).toBeCloseTo(Math.sqrt(0.015 * 25), 9);
 
-  await page.getByRole("button", { name: "Snap to triple point" }).click();
+  await page.getByRole("button", { name: "pTerrain" }).click();
   expect(await value(page)).toBe(0.611654);
   await expect(number).toHaveValue("0.612");
   await page.getByRole("button", { name: "constant T" }).click();
   await expect(page.locator(".phase-diagram")).not.toHaveClass(/swapping/);
-  await page.getByRole("button", { name: "Snap to triple point" }).click();
+  await page.getByRole("button", { name: "pTerrain" }).click();
   expect(await value(page)).toBe(273.16);
   await expect(page.getByRole("spinbutton", { name: /Isotherm temperature/ })).toHaveValue("273.2");
 });
@@ -393,7 +401,7 @@ test("a window where the l-v line meets T_max is rejected", async ({ page }) => 
   await untickAuto(page);
   await setField(page, "pmax", "50");
   const alert = page.locator(".validation");
-  await expect(alert.locator('li[data-check="vaporisationEdge"]')).toBeVisible();
+  await expect(alert.locator('li[data-check="vaporizationEdge"]')).toBeVisible();
   await expect(field(page, "pmax")).toHaveAttribute("aria-invalid");
   await expect(field(page, "Tmax")).toHaveAttribute("aria-invalid");
   await expect(lv).toHaveAttribute("d", before!);
@@ -416,7 +424,7 @@ test("a window that leaves out the triple point is rejected", async ({ page }) =
   }
   for (const name of ["Tt", "pt"])
     await expect(field(page, name)).not.toHaveAttribute("aria-invalid");
-  await expect(page.getByRole("button", { name: "Snap to triple point" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "pTerrain" })).toBeEnabled();
   await setField(page, "Tmin", "200");
   await expect(alert).toBeEmpty();
 });
@@ -501,7 +509,7 @@ test("switching the unit relabels the axes, readout and fields, and moves nothin
   await expect(page.locator(".phase-diagram .y-label")).toHaveText("p (bar)");
   await expect(page.locator(".cut-input label")).toHaveText("p* (bar)");
   await expect(handle(page)).toHaveAccessibleName("Isobar line, p* (bar)");
-  // The default isobar, √(p_t p_max) = 3.91 kPa.
+  // The default isobar, √(p_tp p_max) = 3.91 kPa.
   await expect(page.getByRole("spinbutton", { name: /Isobar pressure/ })).toHaveValue("0.0391");
   // H₂O's p axis, 0.015–25 kPa, is 0.00015–0.25 bar: ticks at the powers of ten of bar.
   await expect(page.locator(".phase-diagram .y-axis .tick text")).toHaveText([
@@ -549,8 +557,9 @@ test("the unit survives a reload and keeps the preset selected", async ({ page }
   await expect(page.locator(".phase-diagram svg")).toBeVisible();
   await expect(page.getByRole("button", { name: "atm" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".phase-diagram .y-label")).toHaveText("p (atm)");
+  // The reload drops the H₂O link, so the page opens on CO₂, which the unit keeps selected too.
   await page.getByRole("button", { name: "kPa" }).click();
-  await expect(select).toHaveValue("h2o");
+  await expect(select).toHaveValue("co2");
 });
 
 test("a value typed in bar or atm lands at the same cut as its kPa equivalent", async ({

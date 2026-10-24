@@ -1,13 +1,13 @@
 :root {
-  /* Phase palette. Regions use the base colour at --region-opacity. Curves use a
-     darker shade with ≥ 3:1 contrast on the background; the liquid's is turned 10° towards violet,
-     which lifts its tritanopia ΔE₀₀ from the solid's to 13.7 (the base colours give 12). */
+  /* Phase palette. Regions use the base color at --region-opacity. Curves use a
+     darker shade with ≥ 3:1 contrast on the background; the liquid's is turned 10° toward violet,
+     which lifts its tritanopia ΔE₀₀ from the solid's to 13.7 (the base colors give 12). */
   --phase-solid: #5fc4b8;
   --phase-liquid: #7c9be0;
-  --phase-vapour: #f2a07b;
+  --phase-vapor: #f2a07b;
   --curve-solid: #369f94;
   --curve-liquid: #828bd0;
-  --curve-vapour: #ca7c59;
+  --curve-vapor: #ca7c59;
   --region-opacity: 0.3;
 
   --bg: #ffffff;
@@ -27,14 +27,13 @@
   background: var(--bg);
 }
 
-/* Dark tokens: chosen with the theme button (data-theme), or the system's scheme until then
-  . The two blocks must stay the same. */
+/* Dark tokens, chosen with the theme button (data-theme); the page is light until then. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* The base colours already reach 6.4–8.5 : 1 on the dark background. */
+  /* The base colors already reach 6.4–8.5 : 1 on the dark background. */
   --curve-solid: #5fc4b8;
   --curve-liquid: #7c9be0;
-  --curve-vapour: #f2a07b;
+  --curve-vapor: #f2a07b;
   --region-opacity: 0.4;
 
   --bg: #16181d;
@@ -47,28 +46,6 @@
   --warning: #d29922;
   /* The logo's purple, lightened in the same hue to 5.7 : 1 (the logo's own gives 2.5 : 1). */
   --d2r2: #af79ec;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    /* The base colours already reach 6.4–8.5 : 1 on the dark background. */
-    --curve-solid: #5fc4b8;
-    --curve-liquid: #7c9be0;
-    --curve-vapour: #f2a07b;
-    --region-opacity: 0.4;
-
-    --bg: #16181d;
-    --fg: #e6e8eb;
-    --muted: #9aa3ad;
-    --boundary: #e6e8eb;
-    --boundary-metastable: #9aa3ad;
-    --cut: #e6e8eb;
-    --focus: #58a6ff;
-    --warning: #d29922;
-    /* The logo's purple, lightened in the same hue to 5.7 : 1 (the logo's own gives 2.5 : 1). */
-    --d2r2: #af79ec;
-  }
 }
 
 /* Form controls do not take the page's font by default. */
@@ -114,10 +91,9 @@ header .theme-toggle {
   grid-area: theme;
 }
 
-/* Below 23.5rem (376 px) of page width the full header (about 372 px) no longer fits one row, so
-   it compacts to 273 px: a 1.5rem logo and a p | T toggle 44 px wide in all. The toggle is one
-   button, so the whole of it is one 44 px touch target. Below 20.5rem its items rearrange with
-   the bar's (see the bar). */
+/* Below 23.5rem (376 px) of page width the header compacts from about 371 px to 272 px: a 1.5rem
+   logo and a p | T toggle 44 px wide in all. The toggle is one button, so the whole of it is one
+   44 px touch target. Below 20.5rem its items rearrange with the bar's (see the bar). */
 @container app (max-width: 23.5rem) {
   header .logo svg {
     height: 1.5rem;
@@ -129,8 +105,11 @@ header .theme-toggle {
   }
 }
 
-/* The theme button: 44 × 44 px, the minimum touch target, without a border. */
-header > .icon-button {
+/* The theme button: 44 × 44 px, the minimum touch target, without a border. The info button and
+   the About overlay's copy of the theme button look the same. */
+header > .icon-button,
+.main-row > .info-button,
+.about-key > .icon-button {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -145,18 +124,36 @@ header > .icon-button {
   cursor: pointer;
 }
 
-header > .icon-button:hover {
+header > .icon-button:hover,
+.main-row > .info-button:hover {
   background: color-mix(in srgb, var(--muted) 15%, transparent);
 }
 
-header > .icon-button .icon {
+header > .icon-button .icon,
+.main-row > .info-button .icon,
+.about-key > .icon-button .icon {
   display: block;
 }
 
-/* The logo: outlines in the text colour, so it follows the theme. */
+/* The logo: outlines in the text color, so it follows the theme. It is a borderless button
+   that snaps the cut to the triple point. */
 .logo {
   margin: 0;
   line-height: 0;
+}
+
+.logo button {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  color: var(--fg);
+  background: transparent;
+  cursor: pointer;
+}
+
+.logo button:hover {
+  opacity: 0.75;
 }
 
 .logo svg {
@@ -526,8 +523,8 @@ input {
 }
 
 /* Below 20.5rem (328 px) of page width, a 360 px window, the header and the bar give up their
-   boxes, so that their items join the layout grid: the logo and the theme button on one row, the
-   p | T toggle, the snap button, Metastable and Share under them, all 44 px wide and evenly spread
+   boxes, so that their items join the layout grid: the logo, the info button and the theme button
+   on one row, the p | T toggle, Metastable and Share under them, all 44 px wide and evenly spread
    across the page, and the substance menu under those, as wide as the page. */
 @container app (width < 20.5rem) {
   header,
@@ -537,13 +534,13 @@ input {
   }
 
   .layout {
-    grid-template-columns: 44px 1fr 44px 1fr 44px 1fr 44px;
+    grid-template-columns: 44px 1fr 44px 1fr 44px;
     grid-template-areas:
-      "logo logo logo logo logo . theme"
-      "mode . snap . eye . share"
-      "menu menu menu menu menu menu menu"
-      "plots plots plots plots plots plots plots"
-      "controls controls controls controls controls controls controls";
+      "logo logo logo info theme"
+      "mode . eye . share"
+      "menu menu menu menu menu"
+      "plots plots plots plots plots"
+      "controls controls controls controls controls";
     row-gap: 0.5rem;
     column-gap: 0;
     align-items: center;
@@ -553,8 +550,9 @@ input {
     grid-area: mode;
   }
 
-  .snap {
-    grid-area: snap;
+  .info-button {
+    grid-area: info;
+    justify-self: end;
   }
 
   .metastable-toggle {
@@ -752,7 +750,7 @@ input {
   display: none;
 }
 
-/* The top and right edges of each plot, in the axis colour, so the axes close into a frame. */
+/* The top and right edges of each plot, in the axis color, so the axes close into a frame. */
 .frame {
   fill: none;
   stroke: var(--muted);
@@ -827,7 +825,7 @@ input {
   pointer-events: none;
 }
 
-/* Phase names in the middle of their regions, in the curve colours. */
+/* Phase names in the middle of their regions, in the curve colors. */
 .phase-diagram .phase-label {
   font-size: 14px;
   font-weight: 700;
@@ -845,7 +843,7 @@ input {
 }
 
 .phase-diagram .phase-label[data-phase="v"] {
-  fill: var(--curve-vapour);
+  fill: var(--curve-vapor);
 }
 
 /* Stable transition values in bold in the x tick-label row, on a patch of the background that
@@ -950,7 +948,7 @@ input {
   text-anchor: middle;
 }
 
-/* Under the envelope, in the stable phase's region colour. */
+/* Under the envelope, in the stable phase's region color. */
 .slice-panel .shade {
   fill-opacity: var(--region-opacity);
   stroke: none;
@@ -965,7 +963,7 @@ input {
 }
 
 .slice-panel .shade[data-phase="v"] {
-  fill: var(--phase-vapour);
+  fill: var(--phase-vapor);
 }
 
 .slice-panel .curve {
@@ -991,7 +989,7 @@ input {
 }
 
 .slice-panel .curve[data-phase="v"] {
-  stroke: var(--curve-vapour);
+  stroke: var(--curve-vapor);
 }
 
 /* Guide lines are dotted, so they stay apart from the dashed metastable lines. Stable
@@ -1025,7 +1023,7 @@ input {
   stroke: var(--boundary-metastable);
 }
 
-/* The footer: centred under the plots and their column, in the muted small
+/* The footer: centered under the plots and their column, in the muted small
    type of the factor line; the link and the button share one line on a phone if they fit. */
 .site-footer {
   display: flex;
@@ -1082,9 +1080,10 @@ input {
   }
 }
 
-/* The Model Details overlay: a modal dialog whose body scrolls on its own, with no padding on the
-   dialog itself, so that a click on it rather than its contents is a click on the backdrop. */
-.model-details {
+/* The overlays, Model Details and About: a modal dialog whose body scrolls on its own, with no
+   padding on the dialog itself, so that a click on it rather than its contents is a click on the
+   backdrop. */
+.overlay {
   box-sizing: border-box;
   width: min(46rem, calc(100vw - 32px));
   max-width: none;
@@ -1096,21 +1095,21 @@ input {
   background: var(--bg);
 }
 
-.model-details[open] {
+.overlay[open] {
   display: flex;
   flex-direction: column;
 }
 
-.model-details::backdrop {
+.overlay::backdrop {
   background: rgb(0 0 0 / 0.45);
 }
 
 /* The page behind does not scroll while the overlay is open. */
-html:has(.model-details[open]) {
+html:has(.overlay[open]) {
   overflow: hidden;
 }
 
-.model-details .dialog-head {
+.overlay .dialog-head {
   display: flex;
   gap: 1rem;
   align-items: center;
@@ -1119,12 +1118,12 @@ html:has(.model-details[open]) {
   border-bottom: 1px solid color-mix(in srgb, var(--muted) 50%, var(--bg));
 }
 
-.model-details h2 {
+.overlay h2 {
   margin: 0;
   font-size: 1.15rem;
 }
 
-.model-details .dialog-close {
+.overlay .dialog-close {
   width: 44px;
   height: 44px;
   padding: 0;
@@ -1136,7 +1135,10 @@ html:has(.model-details[open]) {
   cursor: pointer;
 }
 
-.model-details .dialog-body {
+/* Positioned, so that what is positioned inside it (the About overlay's visually hidden names)
+   scrolls with it instead of stretching the dialog to a second scroll bar. */
+.overlay .dialog-body {
+  position: relative;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1144,13 +1146,13 @@ html:has(.model-details[open]) {
   line-height: 1.5;
 }
 
-.model-details h3 {
+.overlay h3 {
   margin: 1.25rem 0 0.5rem;
   font-size: 1rem;
 }
 
-.model-details p,
-.model-details ul {
+.overlay p,
+.overlay ul {
   margin: 0.5rem 0;
 }
 
@@ -1184,6 +1186,7 @@ html:has(.model-details[open]) {
   top: 0;
   left: 0;
   width: auto !important;
+  max-width: 100%;
   padding: 1px 0 0 !important;
   border: 0 !important;
   overflow: hidden !important;
@@ -1195,7 +1198,7 @@ html:has(.model-details[open]) {
   display: none;
 }
 
-/* g(T, p) in the Model Details button, in the button's text colour, on the label's baseline. */
+/* g(T, p) in the Model Details button, in the button's text color, on the label's baseline. */
 .button-math {
   margin-right: 0.5rem;
 }
@@ -1251,4 +1254,58 @@ html:has(.model-details[open]) {
 .substance-table .source {
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+/* The About overlay: each control as it looks on the page, beside what it does; under it on a
+   phone. The copies take the classes of their containers on the page, so they are styled as
+   there, and the overlay sits in #app, so they turn icon only with the page's. */
+.about dl {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.about dd {
+  margin: 0;
+}
+
+/* Also below 20.5rem, where .main-row and .plot-bar on the page give up their boxes. */
+.about-key,
+.about-key.main-row,
+.about-key.plot-bar {
+  display: flex;
+  align-items: center;
+  line-height: normal;
+}
+
+/* Between the theme key's moon and sun, which keep the button's 44 px boxes. */
+.about-key .about-slash {
+  color: var(--muted);
+}
+
+.about-key.plot-bar {
+  margin: 0;
+}
+
+/* In the footer's small type. */
+.about-key > .model-details-button {
+  font-size: 0.85rem;
+}
+
+.about-key > .apply,
+.about-key > .file-actions {
+  flex: 1;
+}
+
+@media (max-width: 30rem) {
+  .about dl {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+
+  .about dd {
+    margin-bottom: 0.75rem;
+  }
 }

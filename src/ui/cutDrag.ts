@@ -46,7 +46,7 @@ export function cutAfterKey(
 /**
  * Lets the cut be dragged by `targets` inside `svg` and stepped from the keyboard on `handle`.
  * Pointer capture keeps the drag going when the finger leaves the band, and the grab offset keeps
- * the line from jumping to the pointer when it is grabbed off-centre. Neither starts during a
+ * the line from jumping to the pointer when it is grabbed off-center. Neither starts during a
  * swap. `endDrag` ends a drag in progress and releases its pointer: on a mode change.
  */
 export function attachCutDrag(

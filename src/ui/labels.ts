@@ -58,7 +58,7 @@ export function phaseLabels(
 }
 
 /**
- * The centre of the cell of `value` in the cols × rows `grid` (row by row from the top left)
+ * The center of the cell of `value` in the cols × rows `grid` (row by row from the top left)
  * that lies farthest from every other cell and from the grid's edge, with that distance in
  * cells, or null if `value` does not occur. The distance is a lower bound: it is measured to the
  * nearest corner of the nearest cell outside. Where a ridge of cells comes within RIDGE of the
@@ -151,7 +151,7 @@ function distance1d(f: Float64Array, n: number, d: Float64Array, v: Int32Array, 
 }
 
 /**
- * Centres for labels of the given `widths`, wanted at `xs`, so that neighbours keep at least
+ * Centers for labels of the given `widths`, wanted at `xs`, so that neighbors keep at least
  * `gap` between them. Labels that would come too close are moved apart as a group, each by the
  * same amount where they are the same width (least squares), and a group is then shifted as a
  * whole to stay inside `bounds`. The result is in the order of `xs`.
@@ -163,7 +163,7 @@ export function spreadApart(
   bounds: readonly [number, number] = [-Infinity, Infinity],
 ): number[] {
   const order = xs.map((_, k) => k).sort((a, b) => (xs[a] as number) - (xs[b] as number));
-  // Each group is laid out from its left edge: member k's centre is left + offsets[k].
+  // Each group is laid out from its left edge: member k's center is left + offsets[k].
   interface Group {
     members: number[];
     offsets: number[];
