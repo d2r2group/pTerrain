@@ -20,6 +20,8 @@
   --warning: #9a6700;
   /* The purple of the d2r2 group's logo, for the footer link (7.2 : 1 on white). */
   --d2r2: #751ed7;
+  /* The cut knob's shadow while dragged. */
+  --drag-shadow: rgb(0 0 0 / 0.4);
 
   color-scheme: light;
   font-family: Lato, system-ui, sans-serif;
@@ -46,6 +48,8 @@
   --warning: #d29922;
   /* The logo's purple, lightened in the same hue to 5.7 : 1 (the logo's own gives 2.5 : 1). */
   --d2r2: #af79ec;
+  /* Light, as a dark shadow would vanish on the dark background. */
+  --drag-shadow: rgb(255 255 255 / 0.55);
 }
 
 /* Form controls do not take the page's font by default. */
@@ -150,10 +154,6 @@ header > .icon-button .icon,
   color: var(--fg);
   background: transparent;
   cursor: pointer;
-}
-
-.logo button:hover {
-  opacity: 0.75;
 }
 
 .logo svg {
@@ -868,6 +868,12 @@ input {
 .phase-diagram .cut-line {
   stroke: var(--cut);
   stroke-width: 1.5;
+  transition: stroke-width 120ms;
+}
+
+/* Dragging the cut, or hovering anywhere on it, thickens the line and grows the knob. */
+.phase-diagram .cut-dragging .cut-line {
+  stroke-width: 2.5;
 }
 
 .phase-diagram .cut-hit {
@@ -884,15 +890,81 @@ input {
   fill: transparent;
 }
 
-.phase-diagram .cut-handle-knob {
-  fill: var(--bg);
-  stroke: var(--cut);
-  stroke-width: 2;
+.phase-diagram .cut-handle-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 120ms,
+    filter 120ms;
 }
 
-.phase-diagram .cut-handle:focus-visible .cut-handle-knob {
-  stroke: var(--focus);
+/* Only where hover is real: a tap would leave it on. */
+@media (hover: hover) {
+  .phase-diagram .cut:hover .cut-line {
+    stroke-width: 2.5;
+  }
+
+  .phase-diagram .cut:hover .cut-handle-face {
+    transform: scale(1.18);
+  }
+}
+
+.phase-diagram .cut-dragging .cut-handle-face {
+  transform: scale(1.18);
+  filter: drop-shadow(0 1px 3px var(--drag-shadow));
+}
+
+.phase-diagram svg.cut-dragging,
+.phase-diagram svg.cut-dragging * {
+  cursor: grabbing;
+}
+
+.phase-diagram .cut-handle-knob {
+  fill: var(--cut);
+}
+
+.phase-diagram .cut-handle-grip {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The handle's ring when it is clicked, dragged or tabbed to, in the d2r2 purple. */
+.phase-diagram .cut-handle:focus .cut-handle-knob {
+  stroke: var(--d2r2);
   stroke-width: 3;
+}
+
+/* A ring that pings out of the knob until the handle first gets focus, on each page load. */
+.phase-diagram .cut-handle-ping {
+  display: none;
+  fill: none;
+  stroke: var(--cut);
+  stroke-width: 2;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .phase-diagram .cut-handle-ping {
+    display: inline;
+    animation: cut-ping 2.4s ease-out 1s infinite both;
+  }
+}
+
+@keyframes cut-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  60%,
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
 }
 
 /* A light hatch over the cut values that meet no boundary, where the cut cannot go. */
@@ -1269,6 +1341,25 @@ html:has(.overlay[open]) {
 
 .about dd {
   margin: 0;
+}
+
+/* The cut handle's knob, drawn inline in the text where the list names it. */
+.about-handle {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.2em;
+}
+
+.about-handle circle {
+  fill: var(--cut);
+}
+
+.about-handle path {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Also below 20.5rem, where .main-row and .plot-bar on the page give up their boxes. */

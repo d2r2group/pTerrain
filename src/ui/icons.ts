@@ -38,6 +38,9 @@ export const SHARE =
   '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' +
   '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>';
 
+/** Path data of the up/down chevrons on the cut handle's 11 px knob, centered on (0, 0). */
+export const HANDLE_GRIP = "M-3.5,-1.5L0,-5L3.5,-1.5M-3.5,1.5L0,5L3.5,1.5";
+
 /** An icon as SVG markup, hidden from screen readers, `size` CSS px square. */
 export function icon(body: string, size = 18): string {
   return (

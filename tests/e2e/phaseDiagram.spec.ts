@@ -124,6 +124,36 @@ test("dragging the cut line moves the cut with the pointer", async ({ page }) =>
   expect(await value(page)).toBe(Number(await handle(page).getAttribute("aria-valuemax")));
 });
 
+test("the handle pings until first used, marks a drag and rings while focused", async ({
+  page,
+}) => {
+  const svg = page.locator(".phase-diagram svg");
+  const knob = page.locator(".cut-handle-knob");
+  await expect(page.locator(".cut-handle-ping")).toHaveCount(1);
+  await expect(knob).toHaveCSS("stroke", "none");
+
+  const box = (await page.locator(".cut-line").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 15);
+  await page.mouse.down();
+  await expect(svg).toHaveClass(/cut-dragging/);
+  await expect(page.locator(".cut-handle-ping")).toHaveCount(0);
+  await page.mouse.up();
+  await expect(svg).not.toHaveClass(/cut-dragging/);
+
+  // The ring shows while the handle has focus, and again after a mouse click on the theme button
+  // took the focus away.
+  await expect(knob).not.toHaveCSS("stroke", "none");
+  await page.getByRole("button", { name: /^Switch to/ }).click();
+  await expect(knob).toHaveCSS("stroke", "none");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 15);
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(knob).not.toHaveCSS("stroke", "none");
+
+  await page.reload();
+  await expect(page.locator(".cut-handle-ping")).toHaveCount(1);
+});
+
 test("the keyboard steps the cut", async ({ page }) => {
   await handle(page).focus();
   await page.keyboard.press("Home");

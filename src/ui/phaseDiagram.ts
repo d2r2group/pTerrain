@@ -11,6 +11,7 @@ import { boundary, PAIRS, type Point } from "../physics/boundaries";
 import { crossings, type Crossing } from "../physics/crossings";
 import { PHASES, triplePoint, type Phase } from "../physics/gibbs";
 import { attachCutDrag } from "./cutDrag";
+import { HANDLE_GRIP } from "./icons";
 import {
   blendMatrix,
   cutY,
@@ -147,7 +148,11 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
     .append("circle")
     .attr("class", "cut-handle-target")
     .attr("r", HIT_BAND / 2);
-  handle.append("circle").attr("class", "cut-handle-knob").attr("r", 11);
+  attachCutHint(handle.node() as SVGGElement);
+  // A solid knob with an up/down grip, so it reads as a control rather than a data point.
+  const face = handle.append("g").attr("class", "cut-handle-face");
+  face.append("circle").attr("class", "cut-handle-knob").attr("r", 11);
+  face.append("path").attr("class", "cut-handle-grip").attr("d", HANDLE_GRIP);
   const markers = plot.append("g").attr("class", "markers");
 
   let size: PlotSize = { width: 0, height: 0 };
@@ -582,6 +587,15 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   });
 
   trace(store.state);
+}
+
+/**
+ * Pings a ring behind the cut handle (CSS, without reduced motion) until it first gets focus,
+ * which a drag of the cut or the handle gives it too. It comes back on every page load.
+ */
+function attachCutHint(handle: SVGGElement): void {
+  const ring = select(handle).append("circle").attr("class", "cut-handle-ping").attr("r", 11);
+  handle.addEventListener("focus", () => ring.remove(), { once: true });
 }
 
 function prefersReducedMotion(): boolean {

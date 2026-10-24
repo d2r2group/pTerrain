@@ -47,7 +47,8 @@ export function cutAfterKey(
  * Lets the cut be dragged by `targets` inside `svg` and stepped from the keyboard on `handle`.
  * Pointer capture keeps the drag going when the finger leaves the band, and the grab offset keeps
  * the line from jumping to the pointer when it is grabbed off-center. Neither starts during a
- * swap. `endDrag` ends a drag in progress and releases its pointer: on a mode change.
+ * swap. `svg` has the class `cut-dragging` during a drag. `endDrag` ends a drag in progress and
+ * releases its pointer: on a mode change.
  */
 export function attachCutDrag(
   svg: SVGSVGElement,
@@ -68,6 +69,7 @@ export function attachCutDrag(
       offset: cutY(mode, cuts[mode], window, view.size()) - plotY(event),
     };
     svg.setPointerCapture(event.pointerId);
+    svg.classList.add("cut-dragging");
     event.preventDefault();
     handle.focus({ preventScroll: true });
   };
@@ -77,7 +79,9 @@ export function attachCutDrag(
     store.setCut(cutValueAt(view.mode(), y, store.state.window, view.size()));
   };
   const onUp = (event: PointerEvent) => {
-    if (event.pointerId === drag?.pointerId) drag = null;
+    if (event.pointerId !== drag?.pointerId) return;
+    drag = null;
+    svg.classList.remove("cut-dragging");
   };
   for (const target of targets) target.addEventListener("pointerdown", onDown);
   svg.addEventListener("pointermove", onMove);
@@ -100,6 +104,7 @@ export function attachCutDrag(
       if (!drag) return;
       const { pointerId } = drag;
       drag = null;
+      svg.classList.remove("cut-dragging");
       if (svg.hasPointerCapture(pointerId)) svg.releasePointerCapture(pointerId);
     },
   };
