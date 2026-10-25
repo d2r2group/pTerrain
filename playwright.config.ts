@@ -5,6 +5,8 @@ const port = 4173;
 // The smoke tests run against `vite preview` of the built site, so `npm run build` comes first.
 export default defineConfig({
   testDir: "tests/e2e",
+  // Every test loads its own page, so tests within a file run in parallel too.
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",

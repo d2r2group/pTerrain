@@ -10,16 +10,23 @@
   --curve-vapor: #ca7c59;
   --region-opacity: 0.3;
 
+  /* The one corner radius, for every button, field and box. */
+  --radius: 4px;
+
   --bg: #ffffff;
-  --fg: #1f2328;
-  --muted: #59636e;
-  --boundary: #1f2328;
-  --boundary-metastable: #59636e;
-  --cut: #1f2328;
-  --focus: #0969da;
-  --warning: #9a6700;
-  /* The purple of the d2r2 group's logo, for the footer link (7.2 : 1 on white). */
+  --fg: #000000;
+  --muted: #666666;
+  --boundary: #000000;
+  --boundary-metastable: #666666;
+  --cut: #000000;
+  --focus: var(--d2r2);
+  /* A burnt orange in the vapor's hue, deeper than its curve (5.0 : 1 on white). */
+  --warning: #bb4e1b;
+  /* The purple of the d2r2 group's logo, for the footer link and the focus ring (7.2 : 1 on
+     white). */
   --d2r2: #751ed7;
+  /* The fill of a selected button, under text in --bg. */
+  --selected: var(--d2r2);
   /* The cut knob's shadow while dragged. */
   --drag-shadow: rgb(0 0 0 / 0.4);
 
@@ -32,21 +39,23 @@
 /* Dark tokens, chosen with the theme button (data-theme); the page is light until then. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  /* The base colors already reach 6.4–8.5 : 1 on the dark background. */
+  /* The base colors already reach 6.9–9.1 : 1 on the dark background. */
   --curve-solid: #5fc4b8;
   --curve-liquid: #7c9be0;
   --curve-vapor: #f2a07b;
   --region-opacity: 0.4;
 
-  --bg: #16181d;
-  --fg: #e6e8eb;
-  --muted: #9aa3ad;
-  --boundary: #e6e8eb;
-  --boundary-metastable: #9aa3ad;
-  --cut: #e6e8eb;
-  --focus: #58a6ff;
-  --warning: #d29922;
-  /* The logo's purple, lightened in the same hue to 5.7 : 1 (the logo's own gives 2.5 : 1). */
+  /* A neutral near-black and near-white: pure black and white glare and smear on OLED. */
+  --bg: #111111;
+  --fg: #f2f2f2;
+  --muted: #999999;
+  --boundary: #f2f2f2;
+  --boundary-metastable: #999999;
+  --cut: #f2f2f2;
+  --focus: var(--d2r2);
+  /* The light theme's warning lightened in the same hue to 7.1 : 1. */
+  --warning: #f0804c;
+  /* The logo's purple, lightened in the same hue to 6.1 : 1 (the logo's own gives 2.6 : 1). */
   --d2r2: #af79ec;
   /* Light, as a dark shadow would vanish on the dark background. */
   --drag-shadow: rgb(255 255 255 / 0.55);
@@ -104,7 +113,7 @@ header .theme-toggle {
   }
 
   .main-row .mode-toggle > span {
-    min-width: 21px;
+    min-width: 22px;
     padding: 0;
   }
 }
@@ -122,7 +131,7 @@ header > .icon-button,
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   color: var(--fg);
   background: transparent;
   cursor: pointer;
@@ -139,8 +148,8 @@ header > .icon-button .icon,
   display: block;
 }
 
-/* The logo: outlines in the text color, so it follows the theme. It is a borderless button
-   that snaps the cut to the triple point. */
+/* The logo: outlines in the text color, so it follows the theme, with "errain" in the d2r2
+   purple. It is a borderless button that snaps the cut to the triple point. */
 .logo {
   margin: 0;
   line-height: 0;
@@ -150,7 +159,7 @@ header > .icon-button .icon,
   display: block;
   padding: 0;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
   color: var(--fg);
   background: transparent;
   cursor: pointer;
@@ -162,6 +171,10 @@ header > .icon-button .icon,
   height: 2.25rem;
   max-width: 100%;
   fill: currentColor;
+}
+
+.logo .logo-accent {
+  fill: var(--d2r2);
 }
 
 button,
@@ -198,7 +211,7 @@ input {
   align-items: center;
   padding: 0 0.75rem;
   border: 1px solid var(--muted);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   background: transparent;
   cursor: pointer;
 }
@@ -214,8 +227,8 @@ input {
 
 .metastable-toggle[aria-pressed="true"] {
   color: var(--bg);
-  background: var(--fg);
-  border-color: var(--fg);
+  background: var(--selected);
+  border-color: var(--selected);
 }
 
 /* Icon-only buttons: square. */
@@ -314,12 +327,13 @@ input {
 }
 
 /* The axis toggle: one button that shows both modes, p | T, with the current one filled. The
-   halves fill the button, so its border and rounded corners frame them; 43 px each and the
-   border make it 88 px wide, as two 44 px buttons were. */
+   border is on the halves, as on the unit toggle, so that the current one can take the fill's
+   color; 44 px each make it 88 px wide, as two 44 px buttons were. */
 .main-row > .mode-toggle {
   gap: 0;
   align-items: stretch;
   padding: 0;
+  border: 0;
   overflow: hidden;
   font: inherit;
   color: var(--fg);
@@ -331,12 +345,21 @@ input {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  min-width: 43px;
+  min-width: 44px;
   padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+}
+
+.mode-toggle > span:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.mode-toggle > span:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 .mode-toggle > span + span {
-  border-left: 1px solid var(--muted);
+  border-left: 0;
 }
 
 /* p and T in italic, as on the axes. */
@@ -346,7 +369,15 @@ input {
 
 .mode-toggle > span.current {
   color: var(--bg);
-  background: var(--fg);
+  background: var(--selected);
+  border-color: var(--selected);
+}
+
+/* A selected half or unit after the first has no left border of its own, so it paints over its
+   neighbor's right border in the fill's color. */
+.mode-toggle > span + span.current,
+.unit-toggle button + button[aria-pressed="true"] {
+  box-shadow: -1px 0 0 var(--selected);
 }
 
 /* Pressure unit toggle: buttons in one segmented control. */
@@ -368,11 +399,11 @@ input {
 }
 
 .unit-toggle button:first-child {
-  border-radius: 0.5rem 0 0 0.5rem;
+  border-radius: var(--radius) 0 0 var(--radius);
 }
 
 .unit-toggle button:last-child {
-  border-radius: 0 0.5rem 0.5rem 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 .unit-toggle button + button {
@@ -381,7 +412,8 @@ input {
 
 .unit-toggle button[aria-pressed="true"] {
   color: var(--bg);
-  background: var(--fg);
+  background: var(--selected);
+  border-color: var(--selected);
 }
 
 /* The unit toggle sits in the cut input's label row; 44 px high, the minimum touch target. */
@@ -394,6 +426,11 @@ input {
 .unit-toggle button:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: -3px;
+}
+
+/* The ring is inside the button, where the focus purple would vanish on the selected fill. */
+.unit-toggle button[aria-pressed="true"]:focus-visible {
+  outline-color: var(--bg);
 }
 
 /* Cut slider and number field (a fallback for dragging, and for keyboard users). */
@@ -432,7 +469,7 @@ input {
   min-height: 2.25rem;
   padding: 0 0.5rem;
   border: 1px solid var(--muted);
-  border-radius: 0.375rem;
+  border-radius: var(--radius);
   background: var(--bg);
   box-sizing: border-box;
 }
@@ -467,7 +504,7 @@ input {
   min-height: 44px;
   padding: 0 0.5rem;
   border: 1px solid var(--muted);
-  border-radius: 0.375rem;
+  border-radius: var(--radius);
   background: var(--bg);
   box-sizing: border-box;
 }
@@ -482,7 +519,7 @@ input {
   min-height: 44px;
   padding: 0 0.75rem;
   border: 1px solid var(--muted);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   background: transparent;
   cursor: pointer;
 }
@@ -601,7 +638,7 @@ input {
   margin: 0;
   padding: 0.25rem 0.75rem 0.5rem;
   border: 1px solid color-mix(in srgb, var(--muted) 50%, var(--bg));
-  border-radius: 0.375rem;
+  border-radius: var(--radius);
 }
 
 .parameters legend {
@@ -678,7 +715,7 @@ input {
   min-height: 44px;
   padding: 0 0.75rem;
   border: 1px solid var(--muted);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   background: transparent;
   cursor: pointer;
 }
@@ -715,7 +752,7 @@ input {
 .validation {
   padding: 0.5rem 0.75rem;
   border-left: 4px solid var(--warning);
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--warning) 12%, var(--bg));
 }
 
@@ -1130,7 +1167,7 @@ input {
   min-height: 44px;
   padding: 0 0.75rem;
   border: 1px solid var(--muted);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   background: transparent;
   cursor: pointer;
 }
@@ -1162,7 +1199,7 @@ input {
   max-height: 90vh;
   padding: 0;
   border: 1px solid var(--muted);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   color: var(--fg);
   background: var(--bg);
 }
@@ -1200,7 +1237,7 @@ html:has(.overlay[open]) {
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 0.375rem;
+  border-radius: var(--radius);
   background: transparent;
   font-size: 1.5rem;
   line-height: 1;

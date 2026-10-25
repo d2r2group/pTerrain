@@ -1,6 +1,7 @@
-// The p–Terrain logo: one SVG of outlines in `currentColor`, so it follows the theme
-// and needs no web fonts. It replaces the text heading and keeps "pTerrain" as its name. It is
-// also a button that snaps the cut to the triple point, as its tooltip says.
+// The p–Terrain logo: one SVG of outlines in `currentColor`, so it follows the theme (style.css
+// sets its "errain" in the d2r2 purple) and needs no web fonts. It replaces the text heading and
+// keeps "pTerrain" as its name. It is also a button that snaps the cut to the triple point, as its
+// tooltip says.
 
 import logo from "../assets/logo.svg?raw";
 import type { Store } from "./state";
