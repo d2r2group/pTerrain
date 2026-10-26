@@ -11,6 +11,8 @@ teaching MATL7355.
 
 **Open it at <https://pTerrain.d2r2group.com/>.**
 
+![pTerrain on a phone, a tablet and a desktop](assets/mockup.png)
+
 The cut is an isobar or an isotherm across the diagram. The panel below plots
 $g$ of all three phases along it, on the same x axis: the stable phase (lowest
 $g$) is drawn as a full line and shaded in its region's color, the metastable

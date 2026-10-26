@@ -12,6 +12,7 @@
     "dev": "vite",
     "build": "vite build",
     "math": "node scripts/renderMath.mjs",
+    "mockup": "node scripts/renderMockup.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
