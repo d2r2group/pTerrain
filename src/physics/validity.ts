@@ -20,7 +20,8 @@ export type ValidityCheck =
   | "vaporDensity"
   | "singleCrossing"
   | "sublimationEdge"
-  | "vaporizationEdge";
+  | "vaporizationEdge"
+  | "gRange";
 
 export interface ValidityIssue {
   check: ValidityCheck;
@@ -36,12 +37,20 @@ const CHECK_CUTS = 41;
 const CHECK_INTERVALS = 256;
 
 /**
- * Every validity limit that the parameters and window break; empty when they are valid. The
- * checks over the window only run once the basic signs and ranges are right.
+ * Every validity limit that the parameters, the window and a typed g range (the slice's g axis
+ * height in kJ/mol, if any) break; empty when they are valid. The checks over the window only run
+ * once the basic signs and ranges are right.
  */
-export function validate(params: Params, window: PlotWindow): ValidityIssue[] {
+export function validate(params: Params, window: PlotWindow, gRange?: number): ValidityIssue[] {
   const issues: ValidityIssue[] = [];
   const fail = (check: ValidityCheck, message: string) => issues.push({ check, message });
+
+  if (gRange !== undefined && !(Number.isFinite(gRange) && gRange > 0)) {
+    fail(
+      "gRange",
+      "Δg, the height of the g axis, must be a positive number (or empty for the fitted one).",
+    );
+  }
 
   const numbers = [
     params.Tt,

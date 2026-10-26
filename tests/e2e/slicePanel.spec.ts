@@ -348,6 +348,56 @@ test("the panel is shaded under the envelope in the stable phase's color", async
   }
 });
 
+test("a band along the bottom edge shows the stable phase, also where its curve is off the panel", async ({
+  page,
+}) => {
+  // On the CO₂ isobar at 100 kPa the vapor's curve leaves the bottom of the panel near 230 K.
+  await page.goto("./#co2;p,100");
+  await expect(slice(page)).toHaveAttribute("aria-label", /isobar at 100/);
+  const { plot, band, stable } = await page.evaluate(() => {
+    const root = document.querySelector(".slice-panel")!;
+    const box = (el: Element) => el.getBoundingClientRect();
+    const style = getComputedStyle(root);
+    const curve = (phase: string) =>
+      style.getPropertyValue(`--curve-${{ s: "solid", l: "liquid", v: "vapor" }[phase]}`).trim();
+    const hex = (rgb: string) =>
+      "#" +
+      rgb
+        .match(/\d+/g)!
+        .slice(0, 3)
+        .map((n) => Number(n).toString(16).padStart(2, "0"))
+        .join("");
+    const frame = box(root.querySelector("path.frame")!);
+    return {
+      plot: { left: frame.x, right: frame.x + frame.width, bottom: frame.y + frame.height },
+      band: [...root.querySelectorAll(".stable-band rect")]
+        .map((el) => ({
+          phase: el.getAttribute("data-phase")!,
+          left: box(el).x,
+          right: box(el).x + box(el).width,
+          bottom: box(el).y + box(el).height,
+          height: box(el).height,
+          colored: hex(getComputedStyle(el).fill) === curve(el.getAttribute("data-phase")!),
+        }))
+        .sort((a, b) => a.left - b.left),
+      stable: [...root.querySelectorAll(".crossing-marker.stable")].map(
+        (el) => box(el).x + box(el).width / 2,
+      ),
+    };
+  });
+  expect(band.map((b) => b.phase)).toEqual(["s", "v"]);
+  for (const b of band) {
+    expect(b.colored).toBe(true);
+    expect(Math.abs(b.bottom - plot.bottom)).toBeLessThan(0.5);
+    expect(b.height).toBeCloseTo(4, 0);
+  }
+  // It spans the whole cut, the vapor's run included, and changes color at the stable crossing.
+  expect(Math.abs(band[0]!.left - plot.left)).toBeLessThan(0.5);
+  expect(Math.abs(band[1]!.right - plot.right)).toBeLessThan(1);
+  expect(Math.abs(band[1]!.left - band[0]!.right)).toBeLessThan(0.5);
+  expect(stable.some((x) => Math.abs(x - band[1]!.left) < 0.5)).toBe(true);
+});
+
 test("both y-axis labels sit on one vertical line, 4 px left of the widest tick label", async ({
   page,
 }) => {

@@ -641,7 +641,11 @@ input {
   border-radius: var(--radius);
 }
 
+/* A row, so that the Window legend's *auto* box is centred on its text rather than sitting on
+   the baseline, which would make that legend taller than the others. */
 .parameters legend {
+  display: flex;
+  align-items: center;
   padding: 0 0.25rem;
   font-size: 0.85rem;
   color: var(--muted);
@@ -684,9 +688,13 @@ input {
   cursor: pointer;
 }
 
+/* Not as tall as the fields (`.substance input`), so the legend keeps its height and the
+   fieldset's top border lines up with its neighbours'. */
 .parameters legend .auto input {
   width: 1rem;
   height: 1rem;
+  min-height: 0;
+  padding: 0;
   margin: 0;
   accent-color: var(--fg);
 }
@@ -1069,6 +1077,20 @@ input {
 
 .slice-panel .shade[data-phase="v"] {
   fill: var(--phase-vapor);
+}
+
+/* Along the bottom edge, in the stable phase's curve color: which phase is stable where, also
+   where its curve is off the panel. */
+.slice-panel .stable-band rect[data-phase="s"] {
+  fill: var(--curve-solid);
+}
+
+.slice-panel .stable-band rect[data-phase="l"] {
+  fill: var(--curve-liquid);
+}
+
+.slice-panel .stable-band rect[data-phase="v"] {
+  fill: var(--curve-vapor);
 }
 
 .slice-panel .curve {

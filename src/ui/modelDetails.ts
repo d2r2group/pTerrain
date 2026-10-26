@@ -28,8 +28,8 @@ function display(strings: TemplateStringsArray): string {
   return `<div class="equation">${rendered("display", strings)}</div>`;
 }
 
-/** The inputs of the model; the window edges are left out of the table. */
-type InputKey = Exclude<FieldKey, "Tmin" | "Tmax" | "pmin" | "pmax">;
+/** The inputs of the model; the window edges and the g range are left out of the table. */
+type InputKey = Exclude<FieldKey, "Tmin" | "Tmax" | "pmin" | "pmax" | "gRange">;
 
 /** Each input as the overlay writes it. */
 const SYMBOL: Record<InputKey, string> = {
@@ -213,7 +213,8 @@ export function modelDetailsHtml(): string {
   ${tex`g - g_\mathrm{tp}`}, the left side of the model's equations; a constant,
   ${tex`g_\mathrm{tp}`} leaves the slopes ${tex`\partial g/\partial T = -s`} along an isobar
   and ${tex`\partial g/\partial p = v`} along an isotherm unchanged. Its axis follows the cut,
-  centered on the highest stable crossing. The ${tex`p`} axis is logarithmic, which the real
+  centered on the highest stable crossing, with a fitted height unless one is set as
+  ${tex`\Delta g`} in Parameters. The ${tex`p`} axis is logarithmic, which the real
   substances need: on a linear one, water's triple point would sit in the bottom fraction of a
   percent.</p>
 </section>

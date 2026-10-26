@@ -34,6 +34,7 @@ import {
 import {
   matchPreset,
   readoutRows,
+  sameValue,
   substanceFrom,
   substanceValues,
 } from "../src/ui/substanceFields";
@@ -230,6 +231,32 @@ describe("controls", () => {
   it("an edited substance matches no preset", () => {
     expect(matchPreset({ ...h2o.params, Vs: 3.4 }, win)).toBeNull();
     expect(matchPreset(h2o.params, { ...win, pmax: 149 })).toBeNull();
+    // A typed g range is an edit too.
+    expect(matchPreset(h2o.params, win, 20)).toBeNull();
+  });
+
+  it("a typed g range round-trips through the fields, and an empty one is none", () => {
+    const values = substanceValues(h2o.params, win, 20);
+    expect(values.gRange).toBe(20);
+    expect(substanceFrom(values).gRange).toBe(20);
+    expect(substanceValues(h2o.params, win).gRange).toBeNaN();
+    expect(substanceFrom(substanceValues(h2o.params, win)).gRange).toBeUndefined();
+    // An empty g range is the same as none; -0 and 0 are the same value.
+    expect([sameValue(NaN, NaN), sameValue(-0, 0), sameValue(NaN, 0)]).toEqual([true, true, false]);
+  });
+
+  it("the store keeps a typed g range, beside the fitted one, and clears it", () => {
+    const store = new Store(h2o);
+    const fit = 2 * gHalfSpan(h2o.params, h2o.window);
+    expect([store.state.gRange, store.state.gFit]).toEqual([undefined, fit]);
+    store.setSubstance(h2o.params, h2o.window, { gRange: 20 });
+    expect([store.state.gRange, store.state.gFit]).toEqual([20, fit]);
+    // The exaggerated s-l slope refits gFit and keeps the typed g range.
+    store.setExaggerateSl(true);
+    expect(store.state.gRange).toBe(20);
+    expect(store.state.gFit).toBe(2 * gHalfSpan(store.state.model, h2o.window));
+    store.setSubstance(h2o.params, h2o.window);
+    expect(store.state.gRange).toBeUndefined();
   });
 
   it("formats values to three significant figures", () => {

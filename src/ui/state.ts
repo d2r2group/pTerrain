@@ -1,11 +1,13 @@
-// App state: the substance, the window, the mode, one cut position per mode, whether the
-// metastable branches are shown, the pressure unit and whether the s-l slope is exaggerated
-//, with the model that the plots draw and where the current cut crosses it.
+// App state: the substance, the window, a typed g range, the mode, one cut position per mode,
+// whether the metastable branches are shown, the pressure unit and whether the s-l slope is
+// exaggerated, with the model that the plots draw, where the current cut crosses it and the
+// fitted g range.
 
 import { crossings, cutLimits, type Crossing, type Cut } from "../physics/crossings";
 import { exaggerated, type Exaggerated } from "../physics/exaggerate";
 import type { Params, PlotWindow } from "../physics/gibbs";
 import type { Preset } from "../physics/presets";
+import { gHalfSpan } from "../physics/slice";
 import type { PressureUnit } from "./units";
 
 /** Constant p mode (the cut is an isobar, T across) or constant T mode (an isotherm, p across). */
@@ -14,6 +16,11 @@ export type Mode = Cut["kind"];
 export interface State {
   params: Params;
   window: PlotWindow;
+  /**
+   * The full height of the slice's g axis typed in the window fields, kJ/mol, or undefined for
+   * the fitted one, `gFit`. It is kept when the s-l slope is exaggerated.
+   */
+  gRange: number | undefined;
   mode: Mode;
   /** The last cut position of each mode: p* in kPa for the isobar, T* in K for the isotherm. */
   cuts: Record<Mode, number>;
@@ -41,10 +48,12 @@ export interface State {
    * once here for the diagram, the slice panel and the readout.
    */
   crossings: readonly Crossing[];
+  /** The fitted full height of the slice's g axis for `model` and the window, kJ/mol (`gHalfSpan`). */
+  gFit: number;
 }
 
 /** The fields of `State` that the store derives from the others. */
-type Derived = "model" | "exaggeration" | "limits" | "crossings";
+type Derived = "model" | "exaggeration" | "limits" | "crossings" | "gFit";
 
 export type Listener = (state: Readonly<State>, prev: Readonly<State>) => void;
 
@@ -115,6 +124,7 @@ export class Store {
     this.#state = {
       params: preset.params,
       window: preset.window,
+      gRange: undefined,
       mode,
       cuts,
       limits,
@@ -124,6 +134,7 @@ export class Store {
       model: preset.params,
       exaggeration: this.#exaggerated.factor,
       crossings: crossings(cutFor(mode, cuts), preset.params, preset.window),
+      gFit: 2 * gHalfSpan(preset.params, preset.window),
     };
   }
 
@@ -154,12 +165,16 @@ export class Store {
   }
 
   /**
-   * Replaces the substance and the window, which must pass `validate`. With `resetCuts` both cuts
-   * go to `defaultCuts` (a new preset); otherwise each keeps its value, clamped into its new
-   * limits.
+   * Replaces the substance, the window and the typed g range (undefined for the fitted one), which
+   * must pass `validate`. With `resetCuts` both cuts go to `defaultCuts` (a new preset); otherwise
+   * each keeps its value, clamped into its new limits.
    */
-  setSubstance(params: Params, window: PlotWindow, { resetCuts = false } = {}): void {
-    this.#update({ params, window }, resetCuts);
+  setSubstance(
+    params: Params,
+    window: PlotWindow,
+    { resetCuts = false, gRange }: { resetCuts?: boolean; gRange?: number } = {},
+  ): void {
+    this.#update({ params, window, gRange }, resetCuts);
   }
 
   /** Moves the current mode's cut through the triple point: p* = p_tp or T* = T_tp. */
@@ -199,6 +214,9 @@ export class Store {
     ) {
       next.model = next.exaggerateSl ? this.#exaggerated.params : next.params;
       next.exaggeration = this.#exaggerated.factor;
+    }
+    if (next.model !== prev.model || next.window !== prev.window) {
+      next.gFit = 2 * gHalfSpan(next.model, next.window);
     }
     if (resetCuts || next.model !== prev.model || next.window !== prev.window) {
       const limits = cutLimits(next.model, next.window);

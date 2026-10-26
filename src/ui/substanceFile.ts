@@ -7,13 +7,18 @@ import { PRESETS, type PresetId } from "../physics/presets";
 import type { Mode } from "./state";
 import { matchPreset, substanceFrom, substanceValues, type FieldKey } from "./substanceFields";
 
-/** A substance as the panel applies it: its name, parameters, window and *auto* box. */
+/** A substance as the panel applies it: its name, parameters, window, *auto* box and g range. */
 export interface Substance {
   name: string;
   params: Params;
   window: PlotWindow;
   /** Whether the window was applied with *auto* ticked, so that it is `autoWindow(params)`. */
   auto: boolean;
+  /**
+   * The typed full height of the slice's g axis, kJ/mol, or undefined for the fitted one; always
+   * undefined with *auto* ticked.
+   */
+  gRange?: number;
 }
 
 /** The view a link opens on: the mode and its cut, p* in kPa or T* in K. */
@@ -36,7 +41,10 @@ export function cleanName(typed: string): string {
 const FORMAT = "pterrain-substance";
 const VERSION = 1;
 
-/** The parameters, then the window edges, in the fields' order: the order of a link's numbers. */
+/**
+ * The parameters, then the window edges, in the fields' order, then the g range: the order of a
+ * link's numbers.
+ */
 const PARAM_KEYS: readonly FieldKey[] = [
   "Tt",
   "pt",
@@ -65,15 +73,14 @@ const UNITS = {
   Tmax: "K",
   pmin: "kPa",
   pmax: "kPa",
+  gRange: "kJ/mol",
 };
 
-/** The substance file: pretty-printed JSON in the model's units. */
-export function toSubstanceFile(
-  name: string,
-  params: Params,
-  window: PlotWindow,
-  auto: boolean,
-): string {
+/**
+ * The substance file: pretty-printed JSON in the model's units. A typed g range is written under
+ * `window` as `gRange`; without one the key is left out.
+ */
+export function toSubstanceFile({ name, params, window, auto, gRange }: Substance): string {
   const { Tt, pt, dHfus, dHvap, Ss, Vs, Vl, cp } = params;
   const { Tmin, Tmax, pmin, pmax } = window;
   const file = {
@@ -81,7 +88,7 @@ export function toSubstanceFile(
     version: VERSION,
     name,
     params: { Tt, pt, dHfus, dHvap, Ss, Vs, Vl, cp: { s: cp.s, l: cp.l, v: cp.v } },
-    window: { Tmin, Tmax, pmin, pmax },
+    window: { Tmin, Tmax, pmin, pmax, ...(gRange === undefined ? {} : { gRange }) },
     autoWindow: auto,
     units: UNITS,
   };
@@ -109,7 +116,11 @@ function numbers<K extends string>(
   return { ok: true, value: out };
 }
 
-/** The substance in a file's text, or the first problem with it; unknown keys are ignored. */
+/**
+ * The substance in a file's text, or the first problem with it; unknown keys are ignored. The g
+ * range is optional, so files written before it load with the fitted one, and it is ignored with
+ * `autoWindow` true.
+ */
 export function parseSubstanceFile(text: string): Parsed<Substance> {
   let file: unknown;
   try {
@@ -144,6 +155,13 @@ export function parseSubstanceFile(text: string): Parsed<Substance> {
   if (typeof file.autoWindow !== "boolean") {
     return { ok: false, problem: "autoWindow is not true or false" };
   }
+  const gRange = isObject(file.window) ? file.window.gRange : undefined;
+  if (
+    gRange !== undefined &&
+    !(typeof gRange === "number" && Number.isFinite(gRange) && gRange > 0)
+  ) {
+    return { ok: false, problem: "window.gRange is not a positive finite number" };
+  }
   return {
     ok: true,
     value: {
@@ -151,6 +169,7 @@ export function parseSubstanceFile(text: string): Parsed<Substance> {
       params: { ...params.value, cp: cp.value },
       window: window.value,
       auto: file.autoWindow,
+      ...(file.autoWindow || gRange === undefined ? {} : { gRange }),
     },
   };
 }
@@ -186,18 +205,21 @@ const MODE_LETTER: Record<Mode, string> = { isobar: "p", isotherm: "T" };
 
 /**
  * The fragment of a share link, with its `#`: a preset's id when parameters, window and name are
- * the preset's, otherwise `1,<name>,<10 parameters>[,<4 window edges>]`, the window left out when
- * it is automatic; then `;<p|T>,<cut>` for the view.
+ * the preset's (and no g range is typed), otherwise
+ * `1,<name>,<10 parameters>[,<4 window edges>[,<g range>]]`, the window left out when it is
+ * automatic and the g range when it is fitted; then `;<p|T>,<cut>` for the view.
  */
 export function toLink(substance: Substance, view?: View): string {
-  const { name, params, window, auto } = substance;
-  const id = matchPreset(params, window);
+  const { name, params, window, auto, gRange } = substance;
+  const id = matchPreset(params, window, gRange);
   let text: string;
   if (id && PRESETS[id].name === name) {
     text = id;
   } else {
-    const values = substanceValues(params, window);
-    const keys = auto ? PARAM_KEYS : [...PARAM_KEYS, ...WINDOW_KEYS];
+    const values = substanceValues(params, window, gRange);
+    const keys = auto
+      ? PARAM_KEYS
+      : [...PARAM_KEYS, ...WINDOW_KEYS, ...(gRange === undefined ? [] : (["gRange"] as const))];
     text = [
       String(VERSION),
       encodeURIComponent(name),
@@ -254,8 +276,9 @@ export function parseLink(fragment: string): Parsed<{ substance: Substance; view
   }
   const [nameText = "", ...numberTexts] = rest;
   const count = numberTexts.length;
-  if (count !== PARAM_KEYS.length && count !== PARAM_KEYS.length + WINDOW_KEYS.length) {
-    return { ok: false, problem: `it has ${count} numbers, not 10 or 14` };
+  const windowed = PARAM_KEYS.length + WINDOW_KEYS.length;
+  if (count !== PARAM_KEYS.length && count !== windowed && count !== windowed + 1) {
+    return { ok: false, problem: `it has ${count} numbers, not 10, 14 or 15` };
   }
   let name: string;
   try {
@@ -263,8 +286,9 @@ export function parseLink(fragment: string): Parsed<{ substance: Substance; view
   } catch {
     return { ok: false, problem: "its name is not encoded right" };
   }
-  const keys = [...PARAM_KEYS, ...WINDOW_KEYS].slice(0, count);
-  const values = {} as Record<FieldKey, number>;
+  const keys = [...PARAM_KEYS, ...WINDOW_KEYS, "gRange" as const].slice(0, count);
+  // A g range left out is NaN, which `substanceFrom` reads as none.
+  const values = { gRange: NaN } as Record<FieldKey, number>;
   for (const [k, key] of keys.entries()) {
     const x = linkValue(numberTexts[k] as string, key);
     if (!x.ok) return x;
@@ -272,7 +296,7 @@ export function parseLink(fragment: string): Parsed<{ substance: Substance; view
   }
   const auto = count === PARAM_KEYS.length;
   // Without the window edges `substanceFrom` leaves the window unset; the automatic one replaces it.
-  const { params, window } = substanceFrom(values);
+  const { params, window, gRange } = substanceFrom(values);
   return {
     ok: true,
     value: {
@@ -281,6 +305,7 @@ export function parseLink(fragment: string): Parsed<{ substance: Substance; view
         params,
         window: auto ? autoWindow(params) : window,
         auto,
+        ...(gRange === undefined ? {} : { gRange }),
       },
       view,
     },

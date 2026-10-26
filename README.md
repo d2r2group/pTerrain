@@ -14,7 +14,8 @@ teaching MATL7355.
 The cut is an isobar or an isotherm across the diagram. The panel below plots
 $g$ of all three phases along it, on the same x axis: the stable phase (lowest
 $g$) is drawn as a full line and shaded in its region's color, the metastable
-ones dashed. Dotted lines join each crossing of two $g$ curves to the boundary
+ones dashed. A band along its bottom edge repeats the stable phase's color, also where its
+curve runs off the panel. Dotted lines join each crossing of two $g$ curves to the boundary
 above it, and the stable transitions are written in bold under the diagram.
 
 ## Using it
@@ -33,10 +34,13 @@ above it, and the stable transitions are written in bold under the diagram.
   put.
 - **Substance** picks CO₂ (the default), H₂O or **Custom**, which opens
   **Parameters**; that edits every input and the plot window (fitted
-  automatically while **auto** is ticked). Edits take effect on **Apply**, and
-  only if they pass the validity checks.
+  automatically while **auto** is ticked). With **auto** unticked, **Δg** sets
+  the height of the slice's $g$ axis in kJ/mol; left empty, the fitted height
+  (its grey placeholder) applies. Edits take effect on **Apply**, and only if
+  they pass the validity checks.
 - **Export** / **Import** save and load a substance as JSON; **Share** makes a
-  link that opens the same substance and cut (e.g. `#h2o;T,250`).
+  link that opens the same substance and cut (e.g. `#h2o;T,250`). Both keep a
+  typed window and **Δg**.
 - **Model Details**, in the footer, shows the model's equations, the substance
   data and their sources, the limits and the numerics.
 

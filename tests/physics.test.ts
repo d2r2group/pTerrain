@@ -462,6 +462,14 @@ describe("validate", () => {
     expect((b.p - a.p) / (b.T - a.T)).toBeCloseTo(5.53, 1);
   });
 
+  it("takes a positive typed g range, and refuses any other", () => {
+    const { params, window } = CUSTOM;
+    expect(validate(params, window, 12.5)).toEqual([]);
+    for (const gRange of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(validate(params, window, gRange).map((i) => i.check)).toEqual(["gRange"]);
+    }
+  });
+
   it("passes the c_p = 0 fixture that the boundary tests use", () => {
     expect(validate(noCp, h2o.window)).toEqual([]);
   });

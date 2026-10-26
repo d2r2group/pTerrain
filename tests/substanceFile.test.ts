@@ -29,22 +29,42 @@ const typed: Substance = {
 };
 
 /** The substance file as an object, to break it one key at a time. */
-const fileObject = () => JSON.parse(toSubstanceFile("H₂O", h2o.params, h2o.window, true));
+const fileObject = () => JSON.parse(toSubstanceFile(substance(h2o)));
+
+/** `typed` with a typed g range, kJ/mol. */
+const ranged: Substance = { ...typed, gRange: 12.5 };
 const problemOf = (text: string) => {
   const parsed = parseSubstanceFile(text);
   return parsed.ok ? null : parsed.problem;
 };
 
 describe("substance file", () => {
-  it("round-trips the name, parameters, window and box", () => {
-    for (const s of [substance(h2o), substance(co2), substance(CUSTOM, { auto: false }), typed]) {
-      const parsed = parseSubstanceFile(toSubstanceFile(s.name, s.params, s.window, s.auto));
-      expect(parsed).toEqual({ ok: true, value: s });
+  it("round-trips the name, parameters, window, box and g range", () => {
+    for (const s of [
+      substance(h2o),
+      substance(co2),
+      substance(CUSTOM, { auto: false }),
+      typed,
+      ranged,
+    ]) {
+      expect(parseSubstanceFile(toSubstanceFile(s))).toEqual({ ok: true, value: s });
     }
   });
 
+  it("writes a typed g range under window, and loads a file without one with the fitted one", () => {
+    const file = JSON.parse(toSubstanceFile(ranged));
+    expect(file.window.gRange).toBe(12.5);
+    expect(file.units.gRange).toBe("kJ/mol");
+    expect(JSON.parse(toSubstanceFile(typed)).window).not.toHaveProperty("gRange");
+    delete file.window.gRange;
+    expect(parseSubstanceFile(JSON.stringify(file))).toEqual({ ok: true, value: typed });
+    // With autoWindow the g range is the fitted one, whatever the file says.
+    const auto = { ...fileObject(), window: { ...h2o.window, gRange: 9 } };
+    expect(parseSubstanceFile(JSON.stringify(auto))).toEqual({ ok: true, value: substance(h2o) });
+  });
+
   it("is pretty-printed JSON in the model's units, with a units map", () => {
-    const text = toSubstanceFile("H₂O", h2o.params, h2o.window, true);
+    const text = toSubstanceFile(substance(h2o));
     expect(text).toContain('\n  "format": "pterrain-substance",\n  "version": 1,');
     const file = JSON.parse(text);
     expect(file.params.pt).toBe(0.611654);
@@ -87,6 +107,10 @@ describe("substance file", () => {
       [(f) => delete f.params.cp, "params.cp is missing"],
       [(f) => delete f.window.pmax, "window.pmax is missing or not a finite number"],
       [(f) => (f.autoWindow = "yes"), "autoWindow is not true or false"],
+      [(f) => (f.window.gRange = 0), "window.gRange is not a positive finite number"],
+      [(f) => (f.window.gRange = -3), "window.gRange is not a positive finite number"],
+      [(f) => (f.window.gRange = "12"), "window.gRange is not a positive finite number"],
+      [(f) => (f.window.gRange = null), "window.gRange is not a positive finite number"],
     ];
     for (const [breakIt, problem] of cases) {
       const file = fileObject();
@@ -94,7 +118,7 @@ describe("substance file", () => {
       expect(problemOf(JSON.stringify(file))).toBe(problem);
     }
     // JSON has no Infinity, but a number too large for a double parses as one.
-    const huge = toSubstanceFile("H₂O", h2o.params, h2o.window, true).replace("273.16", "1e999");
+    const huge = toSubstanceFile(substance(h2o)).replace("273.16", "1e999");
     expect(problemOf(huge)).toBe("params.Tt is missing or not a finite number");
   });
 
@@ -113,6 +137,7 @@ describe("share link", () => {
     const views = [undefined, { mode: "isobar", cut: 12.34 }, { mode: "isotherm", cut: 250.5 }];
     const subs = [
       typed,
+      ranged,
       { ...typed, auto: true, window: autoWindow(typed.params) },
       substance(CUSTOM, { name: "Custom" }),
       substance(h2o, { name: "Water, mine" }),
@@ -132,6 +157,9 @@ describe("share link", () => {
     expect(link).toBe(
       "#1,x,301.234567891,.000123,2.49,12.5,33.3,2,3.5,1e-7,12.5,0,220,380,.00001,.05",
     );
+    expect(toLink({ ...ranged, name: "x" })).toBe(
+      "#1,x,301.234567891,.000123,2.49,12.5,33.3,2,3.5,1e-7,12.5,0,220,380,.00001,.05,12.5",
+    );
     expect(toLink(substance(h2o), { mode: "isobar", cut: Math.sqrt(0.611654 * 25) })).toBe(
       "#h2o;p,3.91",
     );
@@ -147,8 +175,9 @@ describe("share link", () => {
       ok: true,
       value: { substance: substance(h2o), view: { mode: "isotherm", cut: 250 } },
     });
-    // Another name, or another window, writes the substance out.
+    // Another name, or a typed g range, writes the substance out.
     expect(toLink(substance(h2o, { name: "Water" }))).toMatch(/^#1,Water,273.16,/);
+    expect(toLink(substance(h2o, { auto: false, gRange: 20 }))).toMatch(/^#1,H%E2%82%82O,.*,20$/);
   });
 
   it("has the measured lengths", () => {
@@ -158,6 +187,7 @@ describe("share link", () => {
     expect(encodeURIComponent("H₂O")).toHaveLength(11);
     expect(toLink(named)).toHaveLength(full);
     expect(toLink({ ...named, auto: false })).toHaveLength(full + 16);
+    expect(toLink({ ...named, auto: false, gRange: 12.5 })).toHaveLength(full + 16 + 5);
     expect(toLink(named, { mode: "isotherm", cut: 250 })).toHaveLength(full + 6);
     expect(toLink(substance(h2o), { mode: "isotherm", cut: 250 })).toHaveLength(10);
   });
@@ -171,9 +201,11 @@ describe("share link", () => {
       ["#nacl", 'unknown substance "nacl"'],
       ["#toString", 'unknown substance "toString"'],
       ["#h2o,1", "the preset id h2o takes no numbers"],
-      ["#1,x,1,2,3", "it has 3 numbers, not 10 or 14"],
-      ["#1,x," + nums + ",1", "it has 11 numbers, not 10 or 14"],
-      ["#1,x," + nums + ",1,2,3,4,5", "it has 15 numbers, not 10 or 14"],
+      ["#1,x,1,2,3", "it has 3 numbers, not 10, 14 or 15"],
+      ["#1,x," + nums + ",1", "it has 11 numbers, not 10, 14 or 15"],
+      ["#1,x," + nums + ",1,2,3", "it has 13 numbers, not 10, 14 or 15"],
+      ["#1,x," + nums + ",1,2,3,4,5,6", "it has 16 numbers, not 10, 14 or 15"],
+      ["#1,x," + nums + ",1,2,3,4,abc", "gRange is not a finite number"],
       ["#1,x," + nums.replace("6.007", "Infinity"), "dHfus is not a finite number"],
       ["#1,x," + nums.replace("6.007", "1e999"), "dHfus is not a finite number"],
       ["#1,x," + nums.replace("6.007", ""), "dHfus is not a finite number"],

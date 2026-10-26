@@ -1,6 +1,6 @@
 // The substance panel: the preset menu and Share in the bar above the plots, and the parameter
-// fields with their Apply button, name and automatic window, Import, Export, and the warning that
-// lists the failed validity checks.
+// fields with their Apply button, name, automatic window and g range, Import, Export, and the
+// warning that lists the failed validity checks.
 
 import { autoWindow } from "../physics/autoWindow";
 import type { Params, PlotWindow } from "../physics/gibbs";
@@ -21,6 +21,7 @@ import {
 import {
   FIELD_GROUPS,
   matchPreset,
+  sameValue,
   substanceFrom,
   substanceValues,
   type FieldKey,
@@ -30,8 +31,11 @@ import { fromUnit, toUnit } from "./units";
 /** The fields that hold a pressure: stored in kPa, shown and typed in the chosen unit. */
 const PRESSURE_FIELDS: ReadonlySet<FieldKey> = new Set(["pt", "pmin", "pmax"]);
 
-/** The window edges, which the *auto* box fills from the other parameters. */
-const WINDOW_FIELDS: ReadonlySet<FieldKey> = new Set(["Tmin", "Tmax", "pmin", "pmax"]);
+/**
+ * The window edges and the g range, which the *auto* box fills from the other parameters: the
+ * edges with `autoWindow`, the g range with the fitted one (an empty field).
+ */
+const WINDOW_FIELDS: ReadonlySet<FieldKey> = new Set(["Tmin", "Tmax", "pmin", "pmax", "gRange"]);
 const NO_FIELDS: ReadonlySet<FieldKey> = new Set();
 
 /** The fields that a failed check points at; empty where no single field is to blame. */
@@ -50,11 +54,12 @@ const CHECK_FIELDS: Record<ValidityCheck, readonly FieldKey[]> = {
   singleCrossing: [],
   sublimationEdge: ["Tmin", "pmin"],
   vaporizationEdge: ["Tmax", "pmax"],
+  gRange: ["gRange"],
 };
 
-/** A field value for display, without the rounding noise of a unit conversion. */
+/** A field value for display, without the rounding noise of a unit conversion; NaN is empty. */
 function fieldText(x: number): string {
-  return String(Number(x.toPrecision(12)));
+  return Number.isNaN(x) ? "" : String(Number(x.toPrecision(12)));
 }
 
 /** How long Share reads *Copied* after copying the link. */
@@ -82,7 +87,9 @@ export interface SubstancePanel {
  * enabled while they or the *auto* box differ from what is applied. Apply runs `validate`: if it
  * fails, the fields keep what was typed, a warning lists the failed checks, and the plots keep the
  * last valid substance. While *auto* is ticked the window fields are disabled and show the applied
- * window, and Apply replaces the window with `autoWindow`. Pressures are shown in the chosen unit,
+ * window, and Apply replaces the window with `autoWindow`. The g range field (Δg, the height of
+ * the slice's g axis) is empty for the fitted height, which its placeholder shows; a typed one is
+ * kept until the field is emptied or *auto* is ticked. Pressures are shown in the chosen unit,
  * but a field that is not edited keeps its exact kPa value, so a unit change does not turn a preset
  * into Custom through rounding. The *Name* field is an edit like the others; Export, Share and
  * Import write and read the applied substance as a file or a link, and an import is applied as
@@ -191,6 +198,9 @@ export function createSubstancePanel(
       // The visible label runs the subscript into the name and the unit ("TtK"), so it is spelled out.
       ariaNames.set(key, `${legend}: ${name.textContent}`);
       input.setAttribute("aria-label", `${legend}: ${name.textContent} (${unit})`);
+      if (key === "gRange") {
+        input.title = "Height of the slice's g axis; empty for the fitted one";
+      }
       const units = document.createElement("span");
       units.className = "field-unit";
       units.textContent = unit;
@@ -227,7 +237,9 @@ export function createSubstancePanel(
   ) => {
     const blamed = new Set<FieldKey>(issues.flatMap(({ check }) => CHECK_FIELDS[check]));
     for (const key of keys) {
-      const bad = !exempt.has(key) && (blamed.has(key) || !Number.isFinite(values[key]));
+      // An empty g range is the fitted one; a bad typed one is blamed by its check.
+      const missing = key !== "gRange" && !Number.isFinite(values[key]);
+      const bad = !exempt.has(key) && (blamed.has(key) || missing);
       inputs[key].toggleAttribute("aria-invalid", bad);
     }
     if (issues.length === 0) {
@@ -277,7 +289,7 @@ export function createSubstancePanel(
   };
 
   /** The applied name: the panel's own state, like `appliedAuto`, not the store's. */
-  const startId = matchPreset(store.state.params, store.state.window);
+  const startId = matchPreset(store.state.params, store.state.window, store.state.gRange);
   let appliedName = startId ? PRESETS[startId].name : CUSTOM.name;
 
   /**
@@ -286,16 +298,21 @@ export function createSubstancePanel(
    */
   const showMenu = (id: PresetId | "custom") => {
     select.value = id;
-    const { params, window } = store.state;
-    customOption.text = matchPreset(params, window) === null ? appliedName : CUSTOM.name;
+    const { params, window, gRange } = store.state;
+    customOption.text = matchPreset(params, window, gRange) === null ? appliedName : CUSTOM.name;
   };
 
-  const fill = (params: Params, window: PlotWindow, name: string) => {
-    const values = substanceValues(params, window);
+  const fill = (params: Params, window: PlotWindow, name: string, gRange?: number) => {
+    const values = substanceValues(params, window, gRange);
     for (const key of keys) show(key, values[key]);
     nameInput.value = name;
-    select.value = matchPreset(params, window) ?? "custom";
+    select.value = matchPreset(params, window, gRange) ?? "custom";
     showIssues([], values);
+  };
+
+  /** Shows the fitted g range, which an empty Δg field stands for, as its placeholder. */
+  const showFit = () => {
+    inputs.gRange.placeholder = String(Number(store.state.gFit.toPrecision(3)));
   };
 
   const read = () =>
@@ -311,22 +328,25 @@ export function createSubstancePanel(
    */
   const syncApply = () => {
     const values = read();
-    const { params, window } = store.state;
-    const now = substanceValues(params, window);
+    const { params, window, gRange } = store.state;
+    const now = substanceValues(params, window, gRange);
     apply.disabled =
       auto.checked === appliedAuto &&
       nameInput.value === appliedName &&
-      keys.every((key) => values[key] === now[key]);
+      keys.every((key) => sameValue(values[key], now[key]));
     if (apply.disabled) {
       showIssues([], values);
-      showMenu(matchPreset(params, window) ?? "custom");
+      showMenu(matchPreset(params, window, gRange) ?? "custom");
     }
   };
 
-  /** Sets *auto*, which disables the window fields, and refills them with the applied window. */
+  /**
+   * Sets *auto*, which disables the window fields, and refills them with the applied window and
+   * g range.
+   */
   const setAuto = (on: boolean) => {
     auto.checked = on;
-    const values = substanceValues(store.state.params, store.state.window);
+    const values = substanceValues(store.state.params, store.state.window, store.state.gRange);
     for (const key of WINDOW_FIELDS) {
       inputs[key].disabled = on;
       inputs[key].removeAttribute("aria-invalid");
@@ -365,18 +385,19 @@ export function createSubstancePanel(
    */
   const applyFields = (resetCuts: boolean) => {
     const values = read();
-    const { params, window: typed } = substanceFrom(values);
+    const { params, window: typed, gRange: typedRange } = substanceFrom(values);
     const window = auto.checked ? autoWindow(params) : typed;
-    const issues = validate(params, window);
+    const gRange = auto.checked ? undefined : typedRange;
+    const issues = validate(params, window, gRange);
     const ok = issues.length === 0;
     if (ok) {
       appliedAuto = auto.checked;
       appliedName = cleanName(nameInput.value);
       nameInput.value = appliedName;
-      store.setSubstance(params, window, { resetCuts });
+      store.setSubstance(params, window, { resetCuts, gRange });
       if (auto.checked) setAuto(true);
     }
-    showMenu(ok ? (matchPreset(params, window) ?? "custom") : "custom");
+    showMenu(ok ? (matchPreset(params, window, gRange) ?? "custom") : "custom");
     // An automatic window that fails is the rule's doing, not a window field's.
     showIssues(issues, values, auto.checked ? WINDOW_FIELDS : NO_FIELDS);
     syncApply();
@@ -390,9 +411,9 @@ export function createSubstancePanel(
   });
 
   /** Fills the name, every field and the box with `substance`, and applies them with the cuts reset. */
-  const importSubstance = ({ name, params, window, auto: on }: Substance) => {
+  const importSubstance = ({ name, params, window, auto: on, gRange }: Substance) => {
     nameInput.value = name;
-    const values = substanceValues(params, window);
+    const values = substanceValues(params, window, gRange);
     for (const key of keys) show(key, values[key]);
     auto.checked = on;
     for (const key of WINDOW_FIELDS) inputs[key].disabled = on;
@@ -412,6 +433,7 @@ export function createSubstancePanel(
     params: store.state.params,
     window: store.state.window,
     auto: appliedAuto,
+    gRange: store.state.gRange,
   });
 
   importButton.addEventListener("click", () => picker.click());
@@ -426,14 +448,14 @@ export function createSubstancePanel(
   });
 
   exportButton.addEventListener("click", () => {
-    const { name, params, window, auto: on } = applied();
-    const blob = new Blob([toSubstanceFile(name, params, window, on)], {
+    const substance = applied();
+    const blob = new Blob([toSubstanceFile(substance)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = fileName(name);
+    link.download = fileName(substance.name);
     document.body.append(link);
     link.click();
     link.remove();
@@ -488,8 +510,9 @@ export function createSubstancePanel(
   });
 
   // A unit change converts the pressure fields, typed but unapplied ones included, and changes
-  // nothing in the store.
-  store.subscribe((state) => {
+  // nothing in the store. A new fitted g range (a new model or window) is shown as the placeholder.
+  store.subscribe((state, prev) => {
+    if (state.gFit !== prev.gFit) showFit();
     if (state.pressureUnit === unit) return;
     const values = new Map([...PRESSURE_FIELDS].map((key) => [key, valueOf(key)]));
     unit = state.pressureUnit;
@@ -498,7 +521,8 @@ export function createSubstancePanel(
   });
 
   showUnits();
-  fill(store.state.params, store.state.window, appliedName);
+  showFit();
+  fill(store.state.params, store.state.window, appliedName, store.state.gRange);
   setAuto(auto.checked);
 
   return {

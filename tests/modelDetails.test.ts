@@ -11,7 +11,7 @@ function tableValues(html: string): Map<string, string> {
   return new Map([...cells].map(([, id, key, text]) => [`${id}.${key}`, text!]));
 }
 
-const WINDOW: ReadonlySet<FieldKey> = new Set(["Tmin", "Tmax", "pmin", "pmax"]);
+const WINDOW: ReadonlySet<FieldKey> = new Set(["Tmin", "Tmax", "pmin", "pmax", "gRange"]);
 
 describe("model details", () => {
   it("shows every input of both presets as presets.ts has it, and not the window", () => {

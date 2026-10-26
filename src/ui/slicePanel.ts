@@ -1,9 +1,10 @@
 // The linked slice panel under the diagram: g(T) along the isobar or
 // g(p) along the isotherm, on the diagram's x scale, with the lower envelope solid, the rest
-// dashed, the panel shaded under the envelope in the stable phase's color, and a marker and a
-// dotted guide line at each crossing. g is drawn as g − g_tp, where g_tp is the value all three
-// share at the triple point, so each slope is −s or v and the curves fall with T and rise with p,
-// as in a textbook.
+// dashed, the panel shaded under the envelope in the stable phase's color, a band of the stable
+// phases along its bottom edge, and a marker and a dotted guide line at each crossing. g is drawn
+// as g − g_tp, where g_tp is the value all three share at the triple point, so each slope is −s
+// or v and the curves fall with T and rise with p, as in a textbook. The g axis follows the cut,
+// at the fitted height or one typed in the window fields.
 
 import {
   area,
@@ -19,14 +20,16 @@ import {
 } from "d3";
 import { alongRange, type Crossing, type Cut } from "../physics/crossings";
 import { gibbs, type Params } from "../physics/gibbs";
-import { alongCut, gAnchor, gHalfSpan, sliceSegments, type SliceSegment } from "../physics/slice";
+import { alongCut, gAnchor, sliceSegments, type SliceSegment } from "../physics/slice";
 import { AXIS_LABELS, setAxisLabel } from "./labels";
 import { frameBottomRight, SLICE_MARGIN, type PlotSize } from "./geometry";
 import { attachPanel, fitSvg, placeYLabel } from "./panel";
-import { cutOf, type Store } from "./state";
+import { cutOf, type State, type Store } from "./state";
 import { axisSpec, formatPressure, formatTemperature } from "./units";
 
 const MARGIN = SLICE_MARGIN;
+/** Height of the band of stable phases along the panel's bottom edge, px. */
+const BAND_PX = 4;
 /** A jump of the g axis center larger than this, px, glides instead. */
 const GLIDE_PX = 4;
 /** Length of that glide, ms. */
@@ -49,6 +52,9 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
   const plot = svg.append("g").attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
   const frame = plot.append("path").attr("class", "frame");
   const shading = plot.append("g").attr("class", "shading").attr("clip-path", `url(#${clipId})`);
+  // Along the bottom edge, the stable phase's color over its range, also where its curve is off
+  // the panel.
+  const band = plot.append("g").attr("class", "stable-band");
   const curves = plot.append("g").attr("class", "curves").attr("clip-path", `url(#${clipId})`);
   const guides = plot.append("g").attr("class", "guides");
   const markers = plot.append("g").attr("class", "markers");
@@ -60,7 +66,9 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
   setAxisLabel(yLabel.node() as SVGTextElement, AXIS_LABELS.G());
 
   let size: PlotSize = { width: 0, height: 0 };
-  let half = gHalfSpan(store.state.model, store.state.window);
+  /** Half the g axis's height, kJ/mol: the typed g range's, or the fitted one's (`gHalfSpan`). */
+  const halfOf = ({ gRange, gFit }: Readonly<State>) => (gRange ?? gFit) / 2;
+  let half = halfOf(store.state);
   let data: SliceData | null = null;
   /** The g axis center as drawn, kJ/mol; it lags the cut's `gCenter` while a glide runs. */
   let shown = 0;
@@ -109,6 +117,15 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
       .attr("class", "shade")
       .attr("data-phase", (d) => d.phase)
       .attr("d", (d) => fill(d.points));
+    band
+      .selectAll<SVGRectElement, SliceSegment>("rect")
+      .data(segments.filter((s) => s.stable))
+      .join("rect")
+      .attr("data-phase", (d) => d.phase)
+      .attr("x", (d) => x(d.points[0]![0]))
+      .attr("width", (d) => x(d.points.at(-1)![0]) - x(d.points[0]![0]))
+      .attr("y", size.height - BAND_PX)
+      .attr("height", BAND_PX);
     curves
       .selectAll<SVGPathElement, SliceSegment>("path")
       .data(segments)
@@ -228,8 +245,12 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
   };
 
   store.subscribe((state, prev) => {
-    if (state.model !== prev.model || state.window !== prev.window) {
-      half = gHalfSpan(state.model, state.window);
+    if (
+      state.model !== prev.model ||
+      state.window !== prev.window ||
+      state.gRange !== prev.gRange
+    ) {
+      half = halfOf(state);
       drawAll();
     } else if (state.mode !== prev.mode || state.pressureUnit !== prev.pressureUnit) {
       drawAll();

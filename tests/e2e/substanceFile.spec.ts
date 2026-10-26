@@ -428,3 +428,144 @@ test.describe("on a phone", () => {
     await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
   });
 });
+
+/** The height of the slice's g axis, kJ/mol, read from its ticks and its frame. */
+function sliceRange(page: Page) {
+  return page.evaluate(() => {
+    const root = document.querySelector(".slice-panel")!;
+    const ticks = [...root.querySelectorAll(".y-axis .tick")].map((el) => ({
+      G: Number(el.textContent!.replace("−", "-")),
+      y: el.getBoundingClientRect().y,
+    }));
+    const [a, b] = [ticks[0]!, ticks.at(-1)!];
+    const height = root.querySelector("path.frame")!.getBoundingClientRect().height;
+    return (height * (b.G - a.G)) / (a.y - b.y);
+  });
+}
+
+test("the g range field is disabled with auto, empty with the fitted height as placeholder", async ({
+  page,
+}) => {
+  await open(page);
+  const gRange = field(page, "gRange");
+  await expect(gRange).toBeDisabled();
+  await expect(gRange).toHaveValue("");
+  await expect(gRange).toHaveAccessibleName("Window: Δg (kJ/mol)");
+  const fitted = Number(await gRange.getAttribute("placeholder"));
+  expect(fitted).toBeCloseTo(await sliceRange(page), 1);
+  // Unticked, it is enabled and still empty; Apply without a height keeps H₂O and the fit.
+  await autoBox(page).uncheck();
+  await expect(gRange).toBeEnabled();
+  await expect(gRange).toHaveValue("");
+  await applyButton(page).click();
+  await expect(selected(page)).toHaveText("H₂O");
+  expect(await sliceRange(page)).toBeCloseTo(fitted, 1);
+  // Another substance shows its own fitted height.
+  await select(page).selectOption("co2");
+  await expect(gRange).not.toHaveAttribute("placeholder", String(fitted));
+});
+
+test("a typed g range sets the slice's g axis, and emptying the field fits it again", async ({
+  page,
+}) => {
+  await open(page);
+  const fitted = await sliceRange(page);
+  await autoBox(page).uncheck();
+  await field(page, "gRange").fill("30");
+  await expect(applyButton(page)).toBeEnabled();
+  // Nothing changes until Apply.
+  expect(await sliceRange(page)).toBeCloseTo(fitted, 1);
+  await applyButton(page).click();
+  await expect(alert(page)).toBeEmpty();
+  expect(await sliceRange(page)).toBeCloseTo(30, 1);
+  // A typed height makes the substance custom, under its name.
+  await expect(select(page)).toHaveValue("custom");
+  await expect(selected(page)).toHaveText("H₂O");
+  // The exaggerated s-l slope keeps it.
+  await page.getByRole("checkbox", { name: /Exaggerate/ }).check();
+  expect(await sliceRange(page)).toBeCloseTo(30, 1);
+  await page.getByRole("checkbox", { name: /Exaggerate/ }).uncheck();
+
+  await field(page, "gRange").fill("");
+  await applyButton(page).click();
+  expect(await sliceRange(page)).toBeCloseTo(fitted, 1);
+  await expect(selected(page)).toHaveText("H₂O");
+  await expect(select(page)).toHaveValue("h2o");
+});
+
+test("ticking auto again drops a typed g range", async ({ page }) => {
+  await open(page);
+  const fitted = await sliceRange(page);
+  await autoBox(page).uncheck();
+  await field(page, "gRange").fill("30");
+  await applyButton(page).click();
+  // Like the window edges, the disabled field shows what is applied until Apply fits it.
+  await autoBox(page).check();
+  await expect(field(page, "gRange")).toBeDisabled();
+  await expect(field(page, "gRange")).toHaveValue("30");
+  await applyButton(page).click();
+  await expect(field(page, "gRange")).toHaveValue("");
+  expect(await sliceRange(page)).toBeCloseTo(fitted, 1);
+  await expect(select(page)).toHaveValue("h2o");
+});
+
+test("a g range of 0 is refused by Apply, with the field named", async ({ page }) => {
+  await open(page);
+  const fitted = await sliceRange(page);
+  await autoBox(page).uncheck();
+  await field(page, "gRange").fill("0");
+  await applyButton(page).click();
+  await expect(alert(page).locator('li[data-check="gRange"]')).toBeVisible();
+  await expect(field(page, "gRange")).toHaveAttribute("aria-invalid");
+  await expect(field(page, "Tmin")).not.toHaveAttribute("aria-invalid");
+  expect(await sliceRange(page)).toBeCloseTo(fitted, 1);
+});
+
+test("a typed g range survives Export, Import and Share", async ({ page }) => {
+  await stubClipboard(page);
+  await open(page);
+  await applyCustom(page);
+  await field(page, "gRange").fill("12.5");
+  await applyButton(page).click();
+  await expect(alert(page)).toBeEmpty();
+  expect(await sliceRange(page)).toBeCloseTo(12.5, 1);
+
+  const { text } = await exportFile(page);
+  expect(JSON.parse(text).window.gRange).toBe(12.5);
+  await page.getByRole("button", { name: "Share" }).click();
+  const [link] = await copied(page);
+  expect(link).toMatch(/,220,380,15,120,12\.5;p,[\d.]+$/);
+
+  // Imported after a reload.
+  await page.reload();
+  await page.locator(".parameters summary").click();
+  await importText(page, text);
+  await expect(selected(page)).toHaveText("My substance");
+  await expect(field(page, "gRange")).toHaveValue("12.5");
+  await expect(field(page, "gRange")).toBeEnabled();
+  expect(await sliceRange(page)).toBeCloseTo(12.5, 1);
+
+  // Opened from the link in a new page.
+  const other = await page.context().newPage();
+  await open(other, new URL(link!).hash);
+  await expect(field(other, "gRange")).toHaveValue("12.5");
+  expect(await sliceRange(other)).toBeCloseTo(12.5, 1);
+  expect(errors.get(other) ?? []).toEqual([]);
+});
+
+test("the auto box leaves the Window legend as tall as the others, so the borders line up", async ({
+  page,
+}) => {
+  // Under the plots, where the fieldsets sit side by side, Window beside Heat capacities.
+  await page.setViewportSize({ width: 760, height: 1200 });
+  await open(page);
+  const heights = await page
+    .locator(".parameters legend")
+    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+  expect(new Set(heights).size).toBe(1);
+  const top = (name: string) =>
+    page
+      .locator(".parameters fieldset", { has: page.locator("legend", { hasText: name }) })
+      .evaluate((el) => el.getBoundingClientRect().top);
+  expect(await top("Window")).toBe(await top("Heat capacities"));
+});

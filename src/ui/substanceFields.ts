@@ -1,5 +1,5 @@
 // The substance as the panel's fields see it: the field keys and labels,
-// the conversion between them and the parameters and window, the preset they match, the phase
+// the conversion between them and the parameters, window and g range, the preset they match, the phase
 // names and the readout rows. No DOM here, so the diagram and the overlay can use it too.
 
 import type { Params, Phase, PlotWindow } from "../physics/gibbs";
@@ -31,7 +31,7 @@ export function readoutRows(state: Readonly<State>): ReadoutRow[] {
   }));
 }
 
-/** The editable inputs of the substance panel: every parameter and the window edges. */
+/** The editable inputs of the substance panel: every parameter, the window edges and the g range. */
 export type FieldKey =
   | "Tt"
   | "pt"
@@ -46,7 +46,8 @@ export type FieldKey =
   | "Tmin"
   | "Tmax"
   | "pmin"
-  | "pmax";
+  | "pmax"
+  | "gRange";
 
 /**
  * Field labels as HTML (fixed strings), grouped as in the panel. Molar quantities are lowercase,
@@ -93,12 +94,17 @@ export const FIELD_GROUPS: readonly {
       ["Tmax", "<i>T</i><sub>max</sub>", "K"],
       ["pmin", "<i>p</i><sub>min</sub>", "kPa"],
       ["pmax", "<i>p</i><sub>max</sub>", "kPa"],
+      ["gRange", "Δ<i>g</i>", "kJ/mol"],
     ],
   },
 ];
 
-/** The parameters and window as field values. */
-export function substanceValues(params: Params, window: PlotWindow): Record<FieldKey, number> {
+/** The parameters, window and typed g range as field values; NaN for no g range (fitted). */
+export function substanceValues(
+  params: Params,
+  window: PlotWindow,
+  gRange?: number,
+): Record<FieldKey, number> {
   return {
     Tt: params.Tt,
     pt: params.pt,
@@ -114,29 +120,47 @@ export function substanceValues(params: Params, window: PlotWindow): Record<Fiel
     Tmax: window.Tmax,
     pmin: window.pmin,
     pmax: window.pmax,
+    gRange: gRange ?? NaN,
   };
 }
 
-/** The parameters and window that the field values describe; the inverse of `substanceValues`. */
+/**
+ * The parameters, window and g range that the field values describe (a NaN g range is none);
+ * the inverse of `substanceValues`.
+ */
 export function substanceFrom(values: Readonly<Record<FieldKey, number>>): {
   params: Params;
   window: PlotWindow;
+  gRange: number | undefined;
 } {
-  const { Tt, pt, dHfus, dHvap, Ss, Vs, Vl, cps, cpl, cpv, Tmin, Tmax, pmin, pmax } = values;
+  const { Tt, pt, dHfus, dHvap, Ss, Vs, Vl, cps, cpl, cpv, Tmin, Tmax, pmin, pmax, gRange } =
+    values;
   return {
     params: { Tt, pt, dHfus, dHvap, Ss, Vs, Vl, cp: { s: cps, l: cpl, v: cpv } },
     window: { Tmin, Tmax, pmin, pmax },
+    gRange: Number.isNaN(gRange) ? undefined : gRange,
   };
 }
 
-/** The preset whose parameters and window equal these, or null for a custom substance. */
-export function matchPreset(params: Params, window: PlotWindow): PresetId | null {
+/** Whether two field values are the same: equal, or both NaN (no g range). */
+export function sameValue(a: number, b: number): boolean {
+  return a === b || (Number.isNaN(a) && Number.isNaN(b));
+}
+
+/**
+ * The preset whose parameters and window equal these, or null for a custom substance. A typed g
+ * range makes any substance custom.
+ */
+export function matchPreset(params: Params, window: PlotWindow, gRange?: number): PresetId | null {
+  if (gRange !== undefined) return null;
   const values = substanceValues(params, window);
   const ids = Object.keys(PRESETS) as PresetId[];
   return (
     ids.find((id) => {
       const preset = substanceValues(PRESETS[id].params, PRESETS[id].window);
-      return (Object.keys(values) as FieldKey[]).every((key) => values[key] === preset[key]);
+      return (Object.keys(values) as FieldKey[]).every((key) =>
+        sameValue(values[key], preset[key]),
+      );
     }) ?? null
   );
 }
