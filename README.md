@@ -9,7 +9,7 @@ An interactive $p$-$T$ phase diagram of a one-component system, with the molar
 Gibbs free energy of solid, liquid and vapor along one cut plotted underneath, for
 teaching MATL7355.
 
-**Open it at <https://d2r2group.github.io/pTerrain/>.**
+**Open it at <https://pTerrain.d2r2group.com/>.**
 
 The cut is an isobar or an isotherm across the diagram. The panel below plots
 $g$ of all three phases along it, on the same x axis: the stable phase (lowest
