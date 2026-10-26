@@ -1,32 +1,23 @@
-// The G curves along a cut, for the slice panel: G relative to the mean of the
-// three phases, split into stable and metastable runs, and the G axis that follows the cut.
+// The g curves along a cut, for the slice panel: g − g_tp of the three phases, split into stable
+// and metastable runs, and the g axis that follows the cut.
 
 import { crossings, alongRange, pointOnCut, type Crossing, type Cut } from "./crossings";
 import { gibbs, PHASES, stablePhase, type Params, type Phase, type PlotWindow } from "./gibbs";
 import { linspace, logspace } from "./roots";
 
-/** Steps along the cut for each G curve (a few hundred points). */
+/** Steps along the cut for each g curve (a few hundred points). */
 const SAMPLES = 300;
-/** Headroom above and below the crossings, as a fraction of the G axis half-span. */
+/** Headroom above and below the crossings, as a fraction of the g axis half-span. */
 const G_PAD = 0.1;
 /** Cuts of each mode that `gHalfSpan` scans across the window. */
 const SPAN_CUTS = 200;
 
-/** A run of one phase's G curve that is either on the lower envelope or above it. */
+/** A run of one phase's g curve that is either on the lower envelope or above it. */
 export interface SliceSegment {
   phase: Phase;
   stable: boolean;
-  /** [x along the cut, G − Ḡ in kJ/mol]. */
+  /** [x along the cut, g − g_tp in kJ/mol]. */
   points: [number, number][];
-}
-
-/**
- * G_phase − Ḡ at (T, p), kJ/mol, where Ḡ is the mean G of the three phases. Subtracting the same
- * Ḡ from all three keeps every crossing, which phase is lowest and the gaps between the curves.
- */
-export function relativeG(phase: Phase, T: number, p: number, params: Params): number {
-  const mean = PHASES.reduce((sum, q) => sum + gibbs(q, T, p, params), 0) / PHASES.length;
-  return gibbs(phase, T, p, params) - mean;
 }
 
 /** Position along the cut: T on an isobar, p on an isotherm. */
@@ -35,7 +26,7 @@ export function alongCut(cut: Cut, point: { T: number; p: number }): number {
 }
 
 /**
- * The three G curves along the cut, each split into stable runs (on the lower envelope) and
+ * The three g curves along the cut, each split into stable runs (on the lower envelope) and
  * metastable ones. The runs of a phase meet exactly at the stable crossings, which are added to
  * the `samples` steps, even in T on an isobar and in log p on an isotherm. `found` is the cut's
  * `crossings`, for a caller that has them already.
@@ -82,7 +73,7 @@ export function sliceSegments(
         .filter((x) => x >= lo && x <= hi)
         .map((x): [number, number] => {
           const { T, p } = pointOnCut(cut, x);
-          return [x, relativeG(phase, T, p, params)];
+          return [x, gibbs(phase, T, p, params)];
         });
       segments.push({ phase, stable, points });
     }
@@ -91,9 +82,9 @@ export function sliceSegments(
 }
 
 /**
- * Where the G axis is centered on this cut, kJ/mol: the G − Ḡ of its highest stable crossing, so
- * that crossing sits halfway up the panel. A cut without a stable crossing lies in one phase, and
- * that phase's G at the middle of the cut is centered instead.
+ * Where the g axis is centered on this cut, kJ/mol: the g − g_tp of its highest stable crossing,
+ * so that crossing sits halfway up the panel. A cut without a stable crossing lies in one phase,
+ * and that phase's g at the middle of the cut is centered instead.
  */
 export function gCenter(
   cut: Cut,
@@ -101,17 +92,35 @@ export function gCenter(
   window: PlotWindow,
   found: readonly Crossing[] = crossings(cut, params, window),
 ): number {
-  const stable = found.filter((c) => c.stable);
-  if (stable.length > 0) {
-    return Math.max(...stable.map((c) => relativeG(c.phases[0], c.T, c.p, params)));
-  }
-  const [a, b] = alongRange(cut, window);
-  const { T, p } = pointOnCut(cut, 0.5 * (a + b));
-  return relativeG(stablePhase(T, p, params), T, p, params);
+  return gAnchor(cut, params, window, found).g;
 }
 
 /**
- * Half the height of the G axis, kJ/mol: the farthest any crossing, stable or metastable, lies
+ * `gCenter`'s value, `g`, with what it is taken from, `by`: the pair of the highest stable
+ * crossing ("s-l", …) or the one phase of a cut without one. The center moves continuously with
+ * the cut while `by` stays the same, and jumps where it changes.
+ */
+export function gAnchor(
+  cut: Cut,
+  params: Params,
+  window: PlotWindow,
+  found: readonly Crossing[] = crossings(cut, params, window),
+): { g: number; by: string } {
+  let best: { g: number; by: string } | null = null;
+  for (const c of found) {
+    if (!c.stable) continue;
+    const g = gibbs(c.phases[0], c.T, c.p, params);
+    if (!best || g > best.g) best = { g, by: c.phases.join("-") };
+  }
+  if (best) return best;
+  const [a, b] = alongRange(cut, window);
+  const { T, p } = pointOnCut(cut, 0.5 * (a + b));
+  const phase = stablePhase(T, p, params);
+  return { g: gibbs(phase, T, p, params), by: phase };
+}
+
+/**
+ * Half the height of the g axis, kJ/mol: the farthest any crossing, stable or metastable, lies
  * from its cut's center (`gCenter`), over SPAN_CUTS cuts of each mode evenly across the axis
  * (isobars in log p), with G_PAD headroom. So every crossing stays inside the panel as the axis
  * follows the cut, and the scale does not change while the cut is dragged or the mode is toggled.
@@ -137,22 +146,10 @@ export function gHalfSpan(params: Params, window: PlotWindow, cuts = SPAN_CUTS):
       if (!found.some((c) => c.stable)) continue;
       const center = gCenter(cut, params, window, found);
       for (const c of found) {
-        half = Math.max(half, Math.abs(relativeG(c.phases[0], c.T, c.p, params) - center));
+        half = Math.max(half, Math.abs(gibbs(c.phases[0], c.T, c.p, params) - center));
       }
     }
   }
   // Without any crossing in the window there is nothing to fit, so 1 kJ/mol is shown.
   return half > 0 ? (1 + G_PAD) * half : 1;
-}
-
-/** The G axis domain on this cut, kJ/mol: `half` either side of its `gCenter`. */
-export function gDomain(
-  cut: Cut,
-  params: Params,
-  window: PlotWindow,
-  half: number,
-  found?: readonly Crossing[],
-): [number, number] {
-  const center = gCenter(cut, params, window, found);
-  return [center - half, center + half];
 }

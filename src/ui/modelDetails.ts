@@ -114,9 +114,10 @@ export function modelDetailsHtml(): string {
 <section>
   <h3>Gibbs free energies</h3>
   <p>Each phase ${tex`i`} has a closed-form molar Gibbs free energy referenced to the triple point
-  ${tex`(T_\mathrm{tp}, p_\mathrm{tp})`}, where all three are 0. The solid and the liquid are
-  incompressible, the vapor is an ideal gas, and every phase has a constant heat capacity:</p>
-  ${display`\begin{aligned} g_i(T, p) &= -s_i\,(T - T_\mathrm{tp}) - c_{p,i} \left[ T \ln\frac{T}{T_\mathrm{tp}} - (T - T_\mathrm{tp}) \right] \\ &\quad {}+ v_i\,(p - p_\mathrm{tp}) \qquad (i \in \{\mathrm{s}, \mathrm{l}\}) \\ g_\mathrm{v}(T, p) &= -s_\mathrm{v}\,(T - T_\mathrm{tp}) - c_{p,\mathrm{v}} \left[ T \ln\frac{T}{T_\mathrm{tp}} - (T - T_\mathrm{tp}) \right] \\ &\quad {}+ RT \ln\frac{p}{p_\mathrm{tp}}. \end{aligned}`}
+  ${tex`(T_\mathrm{tp}, p_\mathrm{tp})`}, where all three share the value ${tex`g_\mathrm{tp}`}.
+  The solid and the liquid are incompressible, the vapor is an ideal gas, and every phase has a
+  constant heat capacity:</p>
+  ${display`\begin{aligned} g_i(T, p) - g_\mathrm{tp} &= -s_i\,(T - T_\mathrm{tp}) \\ &\quad {}- c_{p,i} \left[ T \ln\frac{T}{T_\mathrm{tp}} - (T - T_\mathrm{tp}) \right] \\ &\quad {}+ v_i\,(p - p_\mathrm{tp}) \qquad (i \in \{\mathrm{s}, \mathrm{l}\}) \\ g_\mathrm{v}(T, p) - g_\mathrm{tp} &= -s_\mathrm{v}\,(T - T_\mathrm{tp}) \\ &\quad {}- c_{p,\mathrm{v}} \left[ T \ln\frac{T}{T_\mathrm{tp}} - (T - T_\mathrm{tp}) \right] \\ &\quad {}+ RT \ln\frac{p}{p_\mathrm{tp}}. \end{aligned}`}
   <p>Here ${tex`s_i`} is the molar entropy at the triple point, ${tex`v_i`} the molar volume and
   ${tex`c_{p,i}`} the heat capacity. The inputs are ${SYMBOL.Tt}, ${SYMBOL.pt},
   ${SYMBOL.dHfus}, ${SYMBOL.dHvap}, ${SYMBOL.Ss}, ${SYMBOL.Vs}, ${SYMBOL.Vl} and the three
@@ -162,12 +163,12 @@ export function modelDetailsHtml(): string {
   <p>with ${tex`\Delta c_p = c_{p,\mathrm{v}} - c_{p,\mathrm{l}}`}, and it reduces to the
   integrated form when ${tex`\Delta c_p = 0`} and ${tex`v_\mathrm{l}`} is neglected. The
   solid–liquid line differs in the same way: integrating Clapeyron with a constant
-  ${SYMBOL.dHfus} gives
-  ${tex`p - p_0 = (\Delta h_\mathrm{fus}/\Delta v_\mathrm{fus}) \ln(T/T_\mathrm{m})`}, while the model
-  with ${tex`\Delta c_p = 0`} holds ${tex`\Delta s_\mathrm{fus}`} constant and gives a line
-  straight in ${tex`T`}; the two agree near the triple point. The inputs are therefore
-  properties of each phase rather than differences across each transition: ${SYMBOL.Ss} and
-  the separate ${SYMBOL.Vs} and ${SYMBOL.Vl} move no boundary, but they set the slopes of the
+  ${SYMBOL.dHfus} gives</p>
+  ${display`p - p_0 = \frac{\Delta h_\mathrm{fus}}{\Delta v_\mathrm{fus}} \ln\frac{T}{T_\mathrm{m}},`}
+  <p>while the model with ${tex`\Delta c_p = 0`} holds ${tex`\Delta s_\mathrm{fus}`} constant
+  and gives a line straight in ${tex`T`}; the two agree near the triple point. The inputs are
+  therefore properties of each phase rather than differences across each transition:
+  ${SYMBOL.Ss} and the separate ${SYMBOL.Vs} and ${SYMBOL.Vl} move no boundary, but they set the slopes of the
   ${tex`g`} curves in the slice.</p>
 </section>
 <section>
@@ -209,10 +210,12 @@ export function modelDetailsHtml(): string {
   lines for ${tex`p`} at each ${tex`T`}, the steep solid–liquid line for ${tex`T`} at each
   ${tex`p`}. The crossings along a cut are found by bisection to ${tex`10^{-9}`} relative and
   marked stable or metastable by whether the third ${tex`g`} is higher there. The slice plots
-  ${tex`g - \bar{g}`}, the mean of the three ${tex`g`} subtracted from each, which keeps every
-  crossing and which phase is lowest while keeping the small solid–liquid gap visible. The
-  ${tex`p`} axis is logarithmic, which the real substances need: on a linear one, water's
-  triple point would sit in the bottom fraction of a percent.</p>
+  ${tex`g - g_\mathrm{tp}`}, the left side of the model's equations; a constant,
+  ${tex`g_\mathrm{tp}`} leaves the slopes ${tex`\partial g/\partial T = -s`} along an isobar
+  and ${tex`\partial g/\partial p = v`} along an isotherm unchanged. Its axis follows the cut,
+  centered on the highest stable crossing. The ${tex`p`} axis is logarithmic, which the real
+  substances need: on a linear one, water's triple point would sit in the bottom fraction of a
+  percent.</p>
 </section>
 <p class="disclaimer">Claude Opus 5.5 (Anthropic) was used in developing this app, in close
 iteration under the author's supervision.</p>`;

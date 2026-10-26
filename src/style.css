@@ -771,13 +771,9 @@ input {
   margin-top: 0.25rem;
 }
 
-/* Axis labels: the variables T, p and G in italic, and the mean Ḡ with a bar over it. */
+/* Axis labels: the variables T, p and g in italic; the subscript of g_tp stays upright. */
 .axis-label .symbol {
   font-style: italic;
-}
-
-.axis-label .mean {
-  text-decoration: overline;
 }
 
 /* Hidden metastable branches: the dashed curves and extensions, their guides and markers, and
@@ -1039,7 +1035,7 @@ input {
   }
 }
 
-/* Slice panel: G along the cut, on the diagram's x scale. */
+/* Slice panel: g along the cut, on the diagram's x scale. */
 .slice-panel svg {
   display: block;
   overflow: visible;

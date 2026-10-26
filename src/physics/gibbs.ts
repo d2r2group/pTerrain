@@ -1,6 +1,6 @@
 // Closed-form molar Gibbs energies of the three phases, referenced to the triple point.
-// Units: T in K, p in kPa, ΔH in kJ/mol, S and c_p in J/(mol·K), V in L/mol, G in kJ/mol.
-// L·kPa = J, so V·p and R·T·ln p both come out in J/mol before the final /1000.
+// Units: T in K, p in kPa, Δh in kJ/mol, s and c_p in J/(mol·K), v in L/mol, g in kJ/mol.
+// L·kPa = J, so v·p and R·T·ln p both come out in J/mol before the final /1000.
 
 /** Molar gas constant, J/(mol·K). */
 export const R = 8.314462618;
@@ -8,7 +8,7 @@ export const R = 8.314462618;
 export type Phase = "s" | "l" | "v";
 export const PHASES: readonly Phase[] = ["s", "l", "v"];
 
-/** Two G values closer than this (kJ/mol) count as equal, e.g. at the triple point. */
+/** Two g values closer than this (kJ/mol) count as equal, e.g. at the triple point. */
 export const G_TIE = 1e-9;
 
 export interface Params {
@@ -28,12 +28,12 @@ export interface Params {
   Vl: number;
   /** Constant c_p of each phase, J/(mol·K). */
   cp: Record<Phase, number>;
-  /** An extra term in one condensed phase's G, for the exaggerated s-l slope (exaggerate.ts). */
+  /** An extra term in one condensed phase's g, for the exaggerated s-l slope (exaggerate.ts). */
   stretch?: Stretch;
 }
 
 /**
- * An extra c (p − p_ref(T)) in the G of a condensed phase, J/mol with c in L/mol and p in kPa.
+ * An extra c (p − p_ref(T)) in the g of a condensed phase, J/mol with c in L/mol and p in kPa.
  * It adds c to that phase's volume, which tilts the s-l line, and vanishes on the curve p_ref(T),
  * which exaggerate.ts sets to that phase's own vapor line, so that line does not move.
  */
@@ -62,7 +62,7 @@ export function tripleEntropy(phase: Phase, params: Params): number {
 }
 
 /**
- * Molar entropy −∂G/∂T, J/(mol·K): S_i + c_p,i ln(T/T_tp), and for the ideal-gas vapor also
+ * Molar entropy −∂g/∂T, J/(mol·K): s_i + c_p,i ln(T/T_tp), and for the ideal-gas vapor also
  * − R ln(p/p_tp); a `stretch` adds c dp_ref/dT to its phase.
  */
 export function entropy(phase: Phase, T: number, p: number, params: Params): number {
@@ -98,8 +98,8 @@ function gibbsAt(phase: Phase, T: number, p: number, params: Params): number {
 }
 
 /**
- * Molar Gibbs energy in kJ/mol, zero for every phase at the triple point. Either argument may
- * be an array (a cut), and the result is then an array of the same length.
+ * Molar Gibbs energy g − g_tp in kJ/mol, zero for every phase at the triple point. Either
+ * argument may be an array (a cut), and the result is then an array of the same length.
  */
 export function gibbs(phase: Phase, T: number, p: number, params: Params): number;
 export function gibbs(
@@ -128,7 +128,7 @@ export function gibbs(
   return out;
 }
 
-/** The phase with the lowest G at (T, p); ties go to the first of s, l, v. */
+/** The phase with the lowest g at (T, p); ties go to the first of s, l, v. */
 export function stablePhase(T: number, p: number, params: Params): Phase {
   let best: Phase = "s";
   let bestG = gibbsAt("s", T, p, params);
@@ -142,7 +142,7 @@ export function stablePhase(T: number, p: number, params: Params): Phase {
   return best;
 }
 
-/** The triple point (T_tp, p_tp), where all three G vanish by construction. */
+/** The triple point (T_tp, p_tp), where all three g vanish by construction. */
 export function triplePoint(params: Params): { T: number; p: number } {
   return { T: params.Tt, p: params.pt };
 }

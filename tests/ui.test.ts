@@ -10,7 +10,7 @@ import {
   type Params,
   type PlotWindow,
 } from "../src/physics/gibbs";
-import { PRESETS } from "../src/physics/presets";
+import { CUSTOM, PRESETS } from "../src/physics/presets";
 import {
   apply,
   blendMatrix,
@@ -45,14 +45,7 @@ import {
   poleOfInaccessibility,
   spreadApart,
 } from "../src/ui/labels";
-import {
-  alongCut,
-  gCenter,
-  gDomain,
-  gHalfSpan,
-  relativeG,
-  sliceSegments,
-} from "../src/physics/slice";
+import { alongCut, gAnchor, gCenter, gHalfSpan, sliceSegments } from "../src/physics/slice";
 import {
   cutBounds,
   cutFor,
@@ -418,7 +411,7 @@ describe("slice panel", () => {
   });
 
   it.each(Object.entries(PRESETS))(
-    "%s: each G curve's runs cover the cut, and the solid runs are the lower envelope",
+    "%s: each g curve's runs cover the cut, and the solid runs are the lower envelope",
     (_, { params, window }) => {
       for (const [, cut] of sampleCuts(params, window)) {
         const [a, b] = alongRange(cut, window);
@@ -437,7 +430,7 @@ describe("slice panel", () => {
           for (const run of runs) {
             for (const [x, G] of run.points) {
               const { T, p } = pointOnCut(cut, x);
-              expect(G).toBe(relativeG(phase, T, p, params));
+              expect(G).toBe(gibbs(phase, T, p, params));
             }
             // Away from the run's ends, solid means lowest and dashed means not. A sample on the
             // triple point ties all three, so it is skipped.
@@ -472,34 +465,7 @@ describe("slice panel", () => {
   });
 
   it.each(Object.entries(PRESETS))(
-    "%s: the three plotted curves sum to 0, and the crossings and flags are unchanged",
-    (_, { params, window }) => {
-      for (const [, cut] of sampleCuts(params, window)) {
-        const [a, b] = alongRange(cut, window);
-        for (const x of [a, 0.37 * a + 0.63 * b, b]) {
-          const { T, p } = pointOnCut(cut, x);
-          const sum = PHASES.reduce((acc, phase) => acc + relativeG(phase, T, p, params), 0);
-          expect(Math.abs(sum)).toBeLessThan(1e-12);
-          // The gaps between the curves are those of G itself.
-          expect(relativeG("s", T, p, params) - relativeG("v", T, p, params)).toBeCloseTo(
-            gibbs("s", T, p, params) - gibbs("v", T, p, params),
-            12,
-          );
-        }
-        for (const c of crossings(cut, params, window)) {
-          const [i, j] = c.phases;
-          expect(relativeG(i, c.T, c.p, params)).toBeCloseTo(relativeG(j, c.T, c.p, params), 9);
-          // Stable means the third curve is not lower, on the mean reference too.
-          const k = PHASES.find((q) => q !== i && q !== j)!;
-          const margin = relativeG(k, c.T, c.p, params) - relativeG(i, c.T, c.p, params);
-          expect(margin >= -1e-9).toBe(c.stable);
-        }
-      }
-    },
-  );
-
-  it.each(Object.entries(PRESETS))(
-    "%s: the G axis centers the highest stable crossing and holds every crossing of cuts that have one",
+    "%s: the g axis centers the highest stable crossing and holds every crossing of cuts that have one",
     (_, { params, window }) => {
       const half = gHalfSpan(params, window);
       // A denser set of cuts than gHalfSpan scans, in both modes, offset from its samples.
@@ -510,18 +476,18 @@ describe("slice panel", () => {
           const value = fromCutAxis(mode, u0 + ((u1 - u0) * (k + 0.5)) / 333);
           const cut = cutFor(mode, { isobar: value, isotherm: value });
           const found = crossings(cut, params, window);
-          const [lo, hi] = gDomain(cut, params, window, half);
           // The same half-span on every cut, so the scale does not change with the cut.
-          expect(hi - lo).toBeCloseTo(2 * half, 12);
+          const center = gCenter(cut, params, window, found);
+          const [lo, hi] = [center - half, center + half];
           const stable = found
             .filter((c) => c.stable)
-            .map((c) => relativeG(c.phases[0], c.T, c.p, params));
+            .map((c) => gibbs(c.phases[0], c.T, c.p, params));
           // A cut in one phase only may have its metastable crossings off the panel.
           if (stable.length === 0) continue;
-          expect(0.5 * (lo + hi)).toBeCloseTo(Math.max(...stable), 12);
+          expect(center).toBeCloseTo(Math.max(...stable), 12);
           for (const c of found) {
             for (const phase of c.phases) {
-              const G = relativeG(phase, c.T, c.p, params);
+              const G = gibbs(phase, c.T, c.p, params);
               expect(G).toBeGreaterThan(lo);
               expect(G).toBeLessThan(hi);
             }
@@ -531,13 +497,27 @@ describe("slice panel", () => {
     },
   );
 
+  it("the center changes crossing where Custom's s-l line leaves the window through p_max", () => {
+    const { params, window } = CUSTOM;
+    // The s-l line reaches p_max = 150 kPa at 318.07 K.
+    const below = gAnchor({ kind: "isotherm", T: 317.6 }, params, window);
+    const above = gAnchor({ kind: "isotherm", T: 318.5 }, params, window);
+    expect([below.by, above.by]).toEqual(["s-l", "l-v"]);
+    expect(below.g).toBe(gCenter({ kind: "isotherm", T: 317.6 }, params, window));
+    // Taken from the same crossing, the center moves on smoothly: a further 0.1 K moves it by
+    // under 5 % of the jump (about 1 %).
+    const next = gAnchor({ kind: "isotherm", T: 318.6 }, params, window);
+    expect(next.by).toBe("l-v");
+    expect(Math.abs(next.g - above.g)).toBeLessThan(0.05 * Math.abs(above.g - below.g));
+  });
+
   it("a cut without a stable crossing centers its one phase at the middle of the cut", () => {
     const { params } = h2o;
     // The window's low-p corner holds only vapor along this isobar.
     const window: PlotWindow = { ...win, Tmin: 320, Tmax: 350 };
     const cut: Cut = { kind: "isobar", p: 2 };
     expect(crossings(cut, params, window).filter((c) => c.stable)).toHaveLength(0);
-    expect(gCenter(cut, params, window)).toBe(relativeG("v", 335, 2, params));
+    expect(gCenter(cut, params, window)).toBe(gibbs("v", 335, 2, params));
   });
 
   it.each(Object.entries(PRESETS))(

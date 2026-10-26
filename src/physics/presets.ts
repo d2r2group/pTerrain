@@ -21,8 +21,8 @@ function preset(name: string, params: Params): Preset {
 
 /**
  * Where "Custom" starts: the schematic substance of phases 1–7 ("normal"), with rounded numbers
- * chosen for a readable plot rather than for realism. ΔS_fus ≈ R, ΔS_vap ≈ 5R (half of Trouton's
- * rule) and S_s ≈ 4R at T_tp = 300 K, no c_p, and V_s < V_l, so the s-l line slopes forward
+ * chosen for a readable plot rather than for realism. Δs_fus ≈ R, Δs_vap ≈ 5R (half of Trouton's
+ * rule) and s_s ≈ 4R at T_tp = 300 K, no c_p, and v_s < v_l, so the s-l line slopes forward
  * (about +5.5 kPa/K). The window is 220–380 K × 15–150 kPa, with the triple point 52 % up.
  */
 export const CUSTOM: Preset = preset("Custom", {
@@ -37,8 +37,8 @@ export const CUSTOM: Preset = preset("Custom", {
 });
 
 export const PRESETS: Record<PresetId, Preset> = {
-  // V_s from Clapeyron and the slope of the Span–Wagner melting curve (+4.7 MPa/K), ΔH_fus from
-  // T_tp (S_l − S_s). The l-v line falls short of the reference toward T_c = 304 K, because the
+  // v_s from Clapeyron and the slope of the Span–Wagner melting curve (+4.7 MPa/K), Δh_fus from
+  // T_tp (s_l − s_s). The l-v line falls short of the reference toward T_c = 304 K, because the
   // vapor is ideal; the window, 160–275 K × 100–2500 kPa, stops well below it, with the triple
   // point 49 % across and 51 % up. The s-v line runs into the bottom edge (at 193 K) and the l-v
   // line into the top one (at 269 K).
@@ -52,7 +52,7 @@ export const PRESETS: Record<PresetId, Preset> = {
     Vl: 0.037345,
     cp: { s: 56, l: 85.96, v: 39.99 },
   }),
-  // V_s > V_l, so the s-l line slopes back, at about −13.5 MPa/K: almost vertical on the plot.
+  // v_s > v_l, so the s-l line slopes back, at about −13.5 MPa/K: almost vertical on the plot.
   // The window, 200–345 K × 0.015–25 kPa, puts the triple point in the middle of the diagram
   // (50 % across and up on the log p axis). The s-v line runs into the bottom edge (at 234.5 K)
   // and the l-v line into the top one (at 338.3 K), not into the sides.

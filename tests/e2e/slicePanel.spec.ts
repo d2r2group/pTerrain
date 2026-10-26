@@ -179,7 +179,7 @@ test("the slice follows the cut, and each mode returns to its last slice", async
   await expect(slice(page)).toHaveAttribute("aria-label", isotherm!);
 });
 
-/** The G axis's px per kJ/mol, and how far the highest stable crossing sits from the middle. */
+/** The g axis's px per kJ/mol, and how far the highest stable crossing sits from the middle. */
 function readGAxis(page: Page) {
   return page.evaluate(() => {
     const root = document.querySelector(".slice-panel")!;
@@ -202,7 +202,7 @@ function readGAxis(page: Page) {
   });
 }
 
-test("the G axis keeps its scale and follows the cut, the highest stable crossing halfway up", async ({
+test("the g axis keeps its scale and follows the cut, the highest stable crossing halfway up", async ({
   page,
 }) => {
   for (const mode of ["constant p", "constant T"] as const) {
@@ -219,12 +219,59 @@ test("the G axis keeps its scale and follows the cut, the highest stable crossin
     await page.mouse.up();
 
     await expect(curve).not.toHaveAttribute("d", d!);
+    // However fast the drag, the axis follows at once while the same crossing is centered.
     const after = await readGAxis(page);
     expect(Math.abs(after.offset)).toBeLessThan(0.5);
     expect(after.scale).toBeCloseTo(before.scale, 3);
     // The axis moved under the curves: 0 is at another height (or off the panel).
     expect(after.zeroY).not.toBe(before.zeroY);
   }
+});
+
+test("the g axis glides, not jumps, where the highest stable crossing leaves the window", async ({
+  page,
+}) => {
+  // On Custom's isotherms the s-l crossing leaves through p_max at 318.07 K, and the axis then
+  // centers the l-v crossing instead, about 20 px lower.
+  await page.getByRole("combobox", { name: "Substance" }).selectOption("custom");
+  await setMode(page, "constant T");
+  const field = page.getByRole("spinbutton", { name: /Isotherm temperature/ });
+  const marker = '.slice-panel .crossing-marker.stable[data-pair="l-v"]';
+  /** The l-v marker's height on every frame, from typing T until 600 ms after it. */
+  const track = async (T: string) => {
+    await page.evaluate((sel) => {
+      const seen: number[] = [];
+      (window as unknown as { seen: number[] }).seen = seen;
+      const start = performance.now();
+      const frame = () => {
+        seen.push(Number(document.querySelector(sel)!.getAttribute("cy")));
+        if (performance.now() - start < 600) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    }, marker);
+    await field.fill(T);
+    await field.press("Enter");
+    await page.waitForTimeout(700);
+    const seen = await page.evaluate(() => (window as unknown as { seen: number[] }).seen);
+    const steps = seen.slice(1).map((y, k) => Math.abs(y - seen[k]!));
+    return { total: Math.abs(seen.at(-1)! - seen[0]!), largest: Math.max(...steps) };
+  };
+
+  for (const [motion, T] of [
+    ["no-preference", "318.5"],
+    ["reduce", "317.6"],
+  ] as const) {
+    await page.emulateMedia({ reducedMotion: motion });
+    await field.fill(motion === "reduce" ? "318.5" : "317.6");
+    await field.press("Enter");
+    await page.waitForTimeout(400);
+    const { total, largest } = await track(T);
+    expect(total, motion).toBeGreaterThan(10);
+    if (motion === "reduce") expect(largest).toBeCloseTo(total, 0);
+    else expect(largest).toBeLessThan(0.5 * total);
+  }
+  // Settled: the highest stable crossing is halfway up again.
+  expect(Math.abs((await readGAxis(page)).offset)).toBeLessThan(0.5);
 });
 
 test("the two plot areas are the same size, each framed on the sides without an axis", async ({
@@ -319,7 +366,10 @@ test("both y-axis labels sit on one vertical line, 4 px left of the widest tick 
   const check = async () => {
     const [diagram, slicePanel] = await read();
     expect(Math.abs(diagram!.left - slicePanel!.left)).toBeLessThan(0.5);
-    const gap = Math.min(diagram!.ticks, slicePanel!.ticks) - diagram!.right;
+    // Measured from the label that reaches closest to the ticks: the slice's, with g_tp's
+    // lowered subscript.
+    const gap =
+      Math.min(diagram!.ticks, slicePanel!.ticks) - Math.max(diagram!.right, slicePanel!.right);
     expect(gap).toBeGreaterThan(3);
     expect(gap).toBeLessThan(5);
   };

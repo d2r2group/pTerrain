@@ -129,8 +129,9 @@ export function aboutHtml(): string {
   return `
 <p>pTerrain draws the pressure–temperature phase diagram of a pure substance from a molar Gibbs
 free energy <i>g</i>(<i>T</i>, <i>p</i>) for its solid, liquid and vapor. Below it, the slice
-plots each phase's <i>g</i> along a cut, an isobar or an isotherm: the lowest <i>g</i> is
-stable, so where two curves cross, the cut crosses a phase boundary.</p>
+plots each phase's <i>g</i>, relative to its triple-point value <i>g</i><sub>tp</sub>, along a
+cut (an isobar or an isotherm). The lowest <i>g</i> is stable, so where two curves cross, the
+cut crosses a phase boundary.</p>
 <ul>
   <li>Drag the <svg class="about-handle" viewBox="-12 -12 24 24" aria-hidden="true"><circle
     r="11"/><path d="${HANDLE_GRIP}"/></svg><span class="visually-hidden">circle with up and down

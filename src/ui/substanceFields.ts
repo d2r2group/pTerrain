@@ -10,7 +10,7 @@ import { formatPressure, formatTemperature } from "./units";
 /** The phase names, shown on the diagram's regions and named by the readout. */
 export const PHASE_NAME: Record<Phase, string> = { s: "solid", l: "liquid", v: "vapor" };
 
-/** One line of the readout: where two G curves cross along the cut. */
+/** One line of the readout: where two g curves cross along the cut. */
 export interface ReadoutRow {
   phases: readonly [Phase, Phase];
   /** The position along the cut: T in K on an isobar, p in kPa on an isotherm. */

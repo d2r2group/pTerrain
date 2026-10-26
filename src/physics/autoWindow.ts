@@ -47,8 +47,8 @@ function windowFor(params: Params, f: number): PlotWindow {
 }
 
 /**
- * The pressure where G_i = G_v on the isotherm T, or NaN where the bracket holds no crossing.
- * Below RT/V_i, G_i − G_v falls with p, so the root is unique.
+ * The pressure where g_i = g_v on the isotherm T, or NaN where the bracket holds no crossing.
+ * Below RT/v_i, g_i − g_v falls with p, so the root is unique.
  */
 function vaporPressure(phase: "s" | "l", T: number, params: Params): number {
   const f = (u: number) =>

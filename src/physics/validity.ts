@@ -79,7 +79,7 @@ export function validate(params: Params, window: PlotWindow): ValidityIssue[] {
     fail("tripleInWindow", "The triple point must lie inside the window.");
   }
 
-  // S_i is monotonic in T and in p, so the corners of the window decide.
+  // Each phase's s(T, p) is monotonic in T and in p, so the corners of the window decide.
   const corners = [
     [window.Tmin, window.pmin],
     [window.Tmin, window.pmax],
@@ -106,7 +106,7 @@ export function validate(params: Params, window: PlotWindow): ValidityIssue[] {
   }
 
   if (!singleCrossings(params, window)) {
-    fail("singleCrossing", "Two G curves cross more than once along some isobar or isotherm.");
+    fail("singleCrossing", "Two g curves cross more than once along some isobar or isotherm.");
   }
   if (sublimationOnTmin(params, window)) {
     fail(
@@ -147,8 +147,8 @@ function sublimationOnTmin(params: Params, window: PlotWindow): boolean {
 }
 
 /**
- * Whether each pair of G curves crosses at most once along every sampled isobar and isotherm.
- * Each phase's G is computed once per point, and the crossings are only counted, not refined.
+ * Whether each pair of g curves crosses at most once along every sampled isobar and isotherm.
+ * Each phase's g is computed once per point, and the crossings are only counted, not refined.
  */
 function singleCrossings(params: Params, window: PlotWindow): boolean {
   // The grids of pairRoots: steps in T along an isobar, in ln p along an isotherm.

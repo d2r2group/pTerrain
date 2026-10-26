@@ -1,8 +1,8 @@
 // The exaggerated s-l slope. At true scale the s-l line of H₂O and CO₂ looks
 // vertical, and no zoom changes that: its slope is hundreds of times the s-v line's. Here the
 // model itself is changed, so that every plot stays consistent: the condensed phase whose volume
-// makes |ΔV_fus| grow (the solid for water, the liquid for CO₂) gets an extra c (p − p_iv(T))
-// in its G. That adds c to its volume, which tilts the s-l line, and vanishes on its own vapor
+// makes |Δv_fus| grow (the solid for water, the liquid for CO₂) gets an extra c (p − p_iv(T))
+// in its g. That adds c to its volume, which tilts the s-l line, and vanishes on its own vapor
 // line p_iv(T), so the s-v and l-v lines stay where they are.
 
 import { boundary } from "./boundaries";
@@ -21,7 +21,7 @@ const TABLE = 256;
 export interface Exaggerated {
   /** The parameters with the extra term, or the given ones where there is nothing to do. */
   params: Params;
-  /** The factor on |ΔV_fus|; 1 where there is nothing to exaggerate. */
+  /** The factor on |Δv_fus|; 1 where there is nothing to exaggerate. */
   factor: number;
 }
 
@@ -31,7 +31,7 @@ export interface Exaggerated {
  * l-v line when it leans forward, to T_min when it leans back). The stretched model must pass
  * `validate`; where it does not, the factor is halved until it does, down to 1. A
  * line that already leans that far, a triple point outside the window, or a vertical line
- * (ΔV_fus = 0) get factor 1.
+ * (Δv_fus = 0) get factor 1.
  */
 export function exaggerated(params: Params, window: PlotWindow): Exaggerated {
   const same = { params, factor: 1 };
@@ -74,9 +74,9 @@ export function exaggerated(params: Params, window: PlotWindow): Exaggerated {
 }
 
 /**
- * The real vapor line of a condensed phase, p_iv(T) with G_i = G_v, as a table over the window
+ * The real vapor line of a condensed phase, p_iv(T) with g_i = g_v, as a table over the window
  * that is linear in ln p between steps (and past its ends), with its derivative; null where it
- * cannot be found. Below RT/V_i, G_i − G_v falls with p, so the root is unique.
+ * cannot be found. Below RT/v_i, g_i − g_v falls with p, so the root is unique.
  */
 function vaporLine(
   phase: "s" | "l",

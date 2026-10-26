@@ -24,14 +24,14 @@ const { h2o, co2 } = PRESETS;
 
 /**
  * A window above 250 K for H₂O, where c_p,s = 200 J/(mol·K) breaks the single-crossing check
- * alone; in the preset's window, which reaches 200 K, it also makes S_s negative.
+ * alone; in the preset's window, which reaches 200 K, it also makes s_s negative.
  */
 const WARM: PlotWindow = { Tmin: 250, Tmax: 400, pmin: 0.1, pmax: 200 };
 
 /** H₂O with c_p = 0, to check the model without its heat-capacity terms. */
 const noCp: Params = { ...h2o.params, cp: { s: 0, l: 0, v: 0 } };
 
-/** The span of G over the window, the scale for "1e-9 relative" on G. */
+/** The span of g over the window, the scale for "1e-9 relative" on g. */
 function gScale(params: Params, window: PlotWindow): number {
   return (tripleEntropy("v", params) * (window.Tmax - window.Tmin)) / 1000;
 }
@@ -41,7 +41,7 @@ function allPoints(segments: BoundarySegment[]) {
 }
 
 describe("gibbs", () => {
-  it.each(presets)("%s: G_s = G_l = G_v = 0 at the triple point", (_, { params }) => {
+  it.each(presets)("%s: g_s = g_l = g_v = 0 at the triple point", (_, { params }) => {
     const { T, p } = triplePoint(params);
     expect([T, p]).toEqual([params.Tt, params.pt]);
     for (const phase of PHASES) expect(gibbs(phase, T, p, params)).toBe(0);
@@ -51,7 +51,7 @@ describe("gibbs", () => {
     ["H₂O", h2o.params, h2o.window],
     ["CO₂", co2.params, co2.window],
     ["H₂O with c_p = 0", noCp, h2o.window],
-  ] as const)("%s: ∂G/∂T = −S and ∂G/∂p = V by finite differences", (_, params, window) => {
+  ] as const)("%s: ∂g/∂T = −s and ∂g/∂p = v by finite differences", (_, params, window) => {
     const { Tmin, Tmax, pmin, pmax } = window;
     const points = [
       [Tmin + 10, pmin * 3],
@@ -65,7 +65,7 @@ describe("gibbs", () => {
         const hp = 1e-3 * p;
         const dGdT = (gibbs(phase, T + hT, p, params) - gibbs(phase, T - hT, p, params)) / (2 * hT);
         const dGdp = (gibbs(phase, T, p + hp, params) - gibbs(phase, T, p - hp, params)) / (2 * hp);
-        // G is in kJ/mol, S in J/(mol·K) and V in L/mol = J/(mol·kPa).
+        // g is in kJ/mol, s in J/(mol·K) and v in L/mol = J/(mol·kPa).
         expect(dGdT * 1000).toBeCloseTo(-entropy(phase, T, p, params), 4);
         expect((dGdp * 1000) / volume(phase, T, p, params)).toBeCloseTo(1, 4);
       }
@@ -83,7 +83,7 @@ describe("gibbs", () => {
     expect(() => gibbs("s", Ts, Float64Array.from([1, 2]), params)).toThrow();
   });
 
-  it("orders the triple-point entropies S_v > S_l > S_s", () => {
+  it("orders the triple-point entropies s_v > s_l > s_s", () => {
     const params = h2o.params;
     expect(tripleEntropy("l", params) - tripleEntropy("s", params)).toBeCloseTo(
       (1000 * params.dHfus) / params.Tt,
@@ -170,11 +170,11 @@ describe("reference data", () => {
     within(transitionP(co2.params, ["l", "v"], 233), 1000, 0.1);
   });
 
-  it("CO₂: melting point at 5 MPa, which V_s is fitted to", () => {
+  it("CO₂: melting point at 5 MPa, which v_s is fitted to", () => {
     expect(Math.abs(transitionT(co2.params, ["s", "l"], 5000) - 217.55)).toBeLessThan(0.01);
   });
 
-  // S in J/(mol·K) over V in L/mol gives kPa/K.
+  // s in J/(mol·K) over v in L/mol gives kPa/K.
   it.each([
     ["H₂O", h2o.params, -13.5e3],
     ["CO₂", co2.params, 4.7e3],
@@ -190,7 +190,7 @@ describe("boundary", () => {
     ["H₂O with c_p = 0", noCp, h2o.window] as const,
   ];
 
-  it.each(cases)("%s: the two G values agree on every boundary point", (_, params, window) => {
+  it.each(cases)("%s: the two g values agree on every boundary point", (_, params, window) => {
     const tol = 1e-9 * gScale(params, window);
     for (const [i, j] of PAIRS) {
       const points = allPoints(boundary(i, j, params, window));
@@ -233,7 +233,7 @@ describe("boundary", () => {
         const segments = boundary(i, j, params, window);
         expect(segments.map((seg) => seg.stable).sort()).toEqual([false, true]);
         for (const seg of segments) {
-          // Skip the split point itself, where all three G tie.
+          // Skip the split point itself, where all three g tie.
           for (const { T, p } of seg.points.slice(1, -1)) {
             const margin = gibbs(k, T, p, params) - gibbs(i, T, p, params);
             if (seg.stable) expect(margin).toBeGreaterThan(0);
@@ -257,7 +257,7 @@ describe("boundary", () => {
     },
   );
 
-  it.each(cases)("%s: slopes at the triple point match Clapeyron ΔS/ΔV", (_, params) => {
+  it.each(cases)("%s: slopes at the triple point match Clapeyron Δs/Δv", (_, params) => {
     const { Tt, pt } = params;
     // About as tall as wide on the scale of the steep s-l line, so every line crosses it.
     const tiny: PlotWindow = {
@@ -272,7 +272,7 @@ describe("boundary", () => {
       const b = points.at(-1);
       if (!a || !b) throw new Error(`no ${i}-${j} boundary near the triple point`);
       const slope = (b.p - a.p) / (b.T - a.T);
-      // S in J/(mol·K) over V in L/mol gives kPa/K.
+      // s in J/(mol·K) over v in L/mol gives kPa/K.
       const dS = tripleEntropy(j, params) - tripleEntropy(i, params);
       const dV = volume(j, Tt, pt, params) - volume(i, Tt, pt, params);
       expect(slope / (dS / dV)).toBeCloseTo(1, 4);
@@ -399,7 +399,7 @@ describe("crossings", () => {
   );
 
   it.each(presets)(
-    "%s: crossings lie on the G curves, sorted, and flag the envelope",
+    "%s: crossings lie on the g curves, sorted, and flag the envelope by the third g",
     (_, { params, window }) => {
       const tol = 1e-9 * gScale(params, window);
       const cuts: Cut[] = [
@@ -416,6 +416,9 @@ describe("crossings", () => {
         for (const { phases, T, p, stable } of found) {
           const [i, j] = phases;
           expect(Math.abs(gibbs(i, T, p, params) - gibbs(j, T, p, params))).toBeLessThan(tol);
+          // Stable means the third g is not lower there (ties count, as at the triple point).
+          const margin = gibbs(thirdPhase(i, j), T, p, params) - gibbs(i, T, p, params);
+          expect(margin >= -1e-9).toBe(stable);
           // A stable crossing is a real transition: the stable phase on either side is i or j.
           const h = cut.kind === "isobar" ? [1e-6, 0] : [0, 1e-7 * p];
           const sides = [
@@ -455,7 +458,7 @@ describe("validate", () => {
     const [seg] = boundary("s", "l", CUSTOM.params, CUSTOM.window);
     const a = seg!.points[0]!;
     const b = seg!.points.at(-1)!;
-    // ΔS_fus/ΔV_fus = (2490/300 J/(mol·K)) / (1.5 L/mol) ≈ +5.5 kPa/K.
+    // Δs_fus/Δv_fus = (2490/300 J/(mol·K)) / (1.5 L/mol) ≈ +5.5 kPa/K.
     expect((b.p - a.p) / (b.T - a.T)).toBeCloseTo(5.53, 1);
   });
 
@@ -474,7 +477,7 @@ describe("validate", () => {
     ["window", (_, window) => (window.pmax = window.pmin)],
     // T_tp = 273.16 K lies under T_min.
     ["tripleInWindow", (_, window) => (window.Tmin = 280)],
-    // S_s(200 K) = 0 + 37.77 ln(200/273.16) < 0.
+    // s_s(200 K) = 0 + 37.77 ln(200/273.16) < 0.
     ["entropy", (params) => (params.Ss = 0)],
     // 3 · 0.0197 L/mol · 40 MPa = 2358 J/mol > R · 200 K = 1663 J/mol.
     ["vaporDensity", (_, window) => (window.pmax = 40000)],

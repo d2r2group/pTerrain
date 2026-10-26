@@ -290,32 +290,50 @@ export function extremeWithin(
   return best;
 }
 
-/** A piece of an axis label: plain text, or a variable set in italic, with a bar for a mean. */
-export type LabelPart = string | { symbol: string; mean?: boolean };
+/** A piece of an axis label: plain text, or an italic variable, maybe with an upright subscript. */
+export type LabelPart = string | { symbol: string; sub?: string };
 
-/** The axis labels, with T, p and the molar g in italic; p in the shown unit. */
+/** A subscript's size, and how far its baseline drops, as fractions of the label's font size. */
+const SUB_SIZE = 0.75;
+const SUB_DROP = 0.25;
+
+/**
+ * The axis labels, with T, p and the molar g in italic; p in the shown unit. g is referenced to
+ * the triple point, where all three phases share one value g_tp.
+ */
 export const AXIS_LABELS = {
   T: () => [{ symbol: "T" }, " (K)"],
   p: (unit: PressureUnit) => [{ symbol: "p" }, ` (${unit})`],
-  G: () => [{ symbol: "g" }, " − ", { symbol: "g", mean: true }, " (kJ/mol)"],
+  G: () => [{ symbol: "g" }, " − ", { symbol: "g", sub: "tp" }, " (kJ/mol)"],
 } as const satisfies Record<string, (unit: PressureUnit) => readonly LabelPart[]>;
 
 /**
  * Fills an SVG text element with `parts`, one tspan each. Variables get the class `symbol` (set
- * in italic) and a mean also `mean` (overlined), so that ḡ needs no precomposed glyph.
+ * in italic), and a subscript its own smaller tspan of class `sub`, lowered by `dy` (Firefox has
+ * no `baseline-shift`); the tspan after it rises back.
  */
 export function setAxisLabel(text: SVGTextElement, parts: readonly LabelPart[]): void {
-  text.replaceChildren(
-    ...parts.map((part) => {
-      const span = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-      if (typeof part === "string") {
-        span.textContent = part;
-      } else {
-        span.textContent = part.symbol;
-        span.classList.add("symbol");
-        if (part.mean) span.classList.add("mean");
-      }
-      return span;
-    }),
-  );
+  const tspan = (content: string, cls?: string) => {
+    const span = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    span.textContent = content;
+    if (cls) span.classList.add(cls);
+    return span;
+  };
+  const spans: SVGTSpanElement[] = [];
+  let lowered = false;
+  for (const part of parts) {
+    const span = typeof part === "string" ? tspan(part) : tspan(part.symbol, "symbol");
+    if (lowered) span.setAttribute("dy", `${-SUB_DROP}em`);
+    spans.push(span);
+    const subscript = typeof part === "string" ? undefined : part.sub;
+    lowered = subscript !== undefined;
+    if (subscript !== undefined) {
+      const sub = tspan(subscript, "sub");
+      // Its dy is in its own, smaller em.
+      sub.setAttribute("font-size", `${100 * SUB_SIZE}%`);
+      sub.setAttribute("dy", `${SUB_DROP / SUB_SIZE}em`);
+      spans.push(sub);
+    }
+  }
+  text.replaceChildren(...spans);
 }

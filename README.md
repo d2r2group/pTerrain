@@ -47,9 +47,10 @@ and liquid are incompressible, the vapor is an ideal gas, and every $c_p$ is
 constant, so there is no critical point. Boundaries are found where two $g$ are
 equal, so Clapeyron, the triple point and
 $\Delta h_\mathrm{sub} = \Delta h_\mathrm{fus} + \Delta h_\mathrm{vap}$ follow
-rather than being imposed. The slice plots $g - \bar{g}$ (the mean of the three
-subtracted), which keeps every crossing and ordering while keeping the small
-solid–liquid gap visible. The $p$ axis is logarithmic.
+rather than being imposed. The slice plots $g - g_\mathrm{tp}$, where $g_\mathrm{tp}$ is
+the value all three phases share at the triple point, with slopes
+$\partial g/\partial T = -s$ along an isobar and $\partial g/\partial p = v$
+along an isotherm, and its axis follows the cut. The $p$ axis is logarithmic.
 
 The presets use real data at the triple point (retrieved October 2026):
 

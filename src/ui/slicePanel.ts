@@ -1,19 +1,25 @@
-// The linked slice panel under the diagram: G(T) along the isobar or
-// G(p) along the isotherm, on the diagram's x scale, with the lower envelope solid, the rest
+// The linked slice panel under the diagram: g(T) along the isobar or
+// g(p) along the isotherm, on the diagram's x scale, with the lower envelope solid, the rest
 // dashed, the panel shaded under the envelope in the stable phase's color, and a marker and a
-// dotted guide line at each crossing. G is drawn relative to the mean of the three, so that the
-// small gap between s and l is not lost under the vapor's span and no phase is a flat line.
+// dotted guide line at each crossing. g is drawn as g − g_tp, where g_tp is the value all three
+// share at the triple point, so each slope is −s or v and the curves fall with T and rise with p,
+// as in a textbook.
 
-import { area, axisLeft, axisTop, line, scaleLinear, scaleLog, select } from "d3";
-import { alongRange, type Crossing } from "../physics/crossings";
 import {
-  alongCut,
-  gDomain,
-  gHalfSpan,
-  relativeG,
-  sliceSegments,
-  type SliceSegment,
-} from "../physics/slice";
+  area,
+  axisLeft,
+  axisTop,
+  easeCubicOut,
+  line,
+  scaleLinear,
+  scaleLog,
+  select,
+  timer,
+  type Timer,
+} from "d3";
+import { alongRange, type Crossing, type Cut } from "../physics/crossings";
+import { gibbs, type Params } from "../physics/gibbs";
+import { alongCut, gAnchor, gHalfSpan, sliceSegments, type SliceSegment } from "../physics/slice";
 import { AXIS_LABELS, setAxisLabel } from "./labels";
 import { frameBottomRight, SLICE_MARGIN, type PlotSize } from "./geometry";
 import { attachPanel, fitSvg, placeYLabel } from "./panel";
@@ -21,6 +27,18 @@ import { cutOf, type Store } from "./state";
 import { axisSpec, formatPressure, formatTemperature } from "./units";
 
 const MARGIN = SLICE_MARGIN;
+/** A jump of the g axis center larger than this, px, glides instead. */
+const GLIDE_PX = 4;
+/** Length of that glide, ms. */
+const GLIDE_MS = 200;
+
+/** What the curves, guides and markers are drawn from, apart from the g axis. */
+interface SliceData {
+  cut: Cut;
+  params: Params;
+  found: readonly Crossing[];
+  segments: SliceSegment[];
+}
 
 /** Builds the slice panel inside `container` and keeps it in sync with `store`. */
 export function createSlicePanel(container: HTMLElement, store: Store): void {
@@ -43,6 +61,12 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
 
   let size: PlotSize = { width: 0, height: 0 };
   let half = gHalfSpan(store.state.model, store.state.window);
+  let data: SliceData | null = null;
+  /** The g axis center as drawn, kJ/mol; it lags the cut's `gCenter` while a glide runs. */
+  let shown = 0;
+  /** What that center is taken from on the current cut (`gAnchor`). */
+  let anchor = "";
+  let glide: { timer: Timer; from: number; to: number } | null = null;
 
   // In kPa for the curves; the axis is drawn in the shown unit at the same positions.
   const xScale = () => {
@@ -53,14 +77,13 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
       .range([0, size.width]);
   };
 
-  // The G axis follows the cut, so it is redrawn with the curves.
-  const drawSlice = () => {
-    // The model, which has an exaggerated s-l slope while that view is on.
-    const { model: params, window, crossings: found } = store.state;
-    const cut = cutOf(store.state);
+  /** Draws the slice with the g axis centered on `center`, kJ/mol. */
+  const render = (center: number) => {
+    if (!data) return;
+    const { cut, params, found, segments } = data;
     const x = xScale();
     const y = scaleLinear()
-      .domain(gDomain(cut, params, window, half, found))
+      .domain([center - half, center + half])
       .range([size.height, 0]);
     // No outer ticks, as on the diagram: an end of an axis gets a tick only where it is a major one.
     yAxis.attr("transform", `translate(${MARGIN.left},${MARGIN.top})`).call(
@@ -72,10 +95,6 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     const path = line<[number, number]>(
       ([u]) => x(u),
       ([, G]) => y(G),
-    );
-    // Metastable runs first, so the envelope is drawn on top of them.
-    const segments = sliceSegments(cut, params, window, { found }).sort(
-      (s, t) => Number(s.stable) - Number(t.stable),
     );
     // Under the envelope, down to the bottom edge, in the stable phase's color.
     const fill = area<[number, number]>(
@@ -99,7 +118,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
       .attr("d", (d) => path(d.points));
 
     const px = (c: Crossing) => x(alongCut(cut, c));
-    const py = (c: Crossing) => y(relativeG(c.phases[0], c.T, c.p, params));
+    const py = (c: Crossing) => y(gibbs(c.phases[0], c.T, c.p, params));
     // A metastable crossing of a cut in one phase only can lie off the panel (see gHalfSpan): its
     // guide then stops at the panel's edge, and its marker is hidden rather than drawn outside.
     const onPanel = (c: Crossing) => py(c) >= 0 && py(c) <= size.height;
@@ -133,6 +152,63 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     );
   };
 
+  const stopGlide = () => {
+    glide?.timer.stop();
+    glide = null;
+  };
+
+  /** Eases the drawn center from where it is to `to`, kJ/mol, over GLIDE_MS. */
+  const startGlide = (to: number) => {
+    stopGlide();
+    const run = {
+      from: shown,
+      to,
+      timer: timer((elapsed) => {
+        const t = easeCubicOut(Math.min(1, elapsed / GLIDE_MS));
+        shown = run.from + t * (run.to - run.from);
+        render(shown);
+        if (elapsed >= GLIDE_MS) stopGlide();
+      }),
+    };
+    glide = run;
+  };
+
+  /**
+   * Redraws the slice for the current cut. The g axis follows the cut, centered on its `gCenter`.
+   * That center moves continuously while it is taken from the same crossing, however fast the cut
+   * moves, and the axis then follows at once. It jumps where it changes crossing, as where the
+   * highest stable crossing leaves the window: with `smooth` (a moved cut), such a jump of more
+   * than GLIDE_PX eases over GLIDE_MS instead, and a glide under way follows the center as it
+   * moves on. Without `smooth` (a new model, window, mode, unit or size), or when the system asks
+   * for reduced motion, the axis jumps.
+   */
+  const drawSlice = (smooth = false) => {
+    // The model, which has an exaggerated s-l slope while that view is on.
+    const { model: params, window, crossings: found } = store.state;
+    const cut = cutOf(store.state);
+    // Metastable runs first, so the envelope is drawn on top of them.
+    const segments = sliceSegments(cut, params, window, { found }).sort(
+      (s, t) => Number(s.stable) - Number(t.stable),
+    );
+    const first = data === null;
+    data = { cut, params, found, segments };
+    const { g: target, by } = gAnchor(cut, params, window, found);
+    const switched = by !== anchor;
+    anchor = by;
+    const px = (dg: number) => (Math.abs(dg) * size.height) / (2 * half);
+    if (!smooth || first || prefersReducedMotion()) {
+      stopGlide();
+      shown = target;
+    } else if (switched && px(target - shown) > GLIDE_PX) {
+      startGlide(target);
+    } else if (glide) {
+      glide.to = target;
+    } else {
+      shown = target;
+    }
+    render(shown);
+  };
+
   const drawAll = () => {
     fitSvg(svg.node() as SVGSVGElement, size, MARGIN);
     clipRect.attr("width", size.width).attr("height", size.height);
@@ -158,7 +234,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     } else if (state.mode !== prev.mode || state.pressureUnit !== prev.pressureUnit) {
       drawAll();
     } else if (state.cuts !== prev.cuts) {
-      drawSlice();
+      drawSlice(true);
     }
   });
 
@@ -166,4 +242,8 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     size = next;
     drawAll();
   });
+}
+
+function prefersReducedMotion(): boolean {
+  return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }

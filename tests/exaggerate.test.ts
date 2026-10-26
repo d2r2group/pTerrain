@@ -117,8 +117,8 @@ describe("exaggerated s-l slope", () => {
         ["s", "v"],
         ["l", "v"],
       ] as const) {
-        // Every point of the exaggerated line lies on the real one: G_i = G_v there, up to the
-        // vapor-line table's interpolation. As a shift in T (ΔG / ΔS) that is under 1 mK.
+        // Every point of the exaggerated line lies on the real one: g_i = g_v there, up to the
+        // vapor-line table's interpolation. As a shift in T (Δg / Δs) that is under 1 mK.
         const dS =
           1e-3 *
           (entropy(j, params.Tt, params.pt, params) - entropy(i, params.Tt, params.pt, params));
@@ -127,7 +127,7 @@ describe("exaggerated s-l slope", () => {
           expect(Math.abs(real / dS)).toBeLessThan(1e-3);
         }
       }
-      // The triple point stays, and all three G still vanish there.
+      // The triple point stays, and all three g still vanish there.
       for (const phase of PHASES) {
         expect(Math.abs(gibbs(phase, params.Tt, params.pt, model))).toBeLessThan(1e-6);
       }
@@ -135,7 +135,7 @@ describe("exaggerated s-l slope", () => {
   );
 
   it.each(Object.entries(PRESETS))(
-    "%s: ∂G/∂T = −S and ∂G/∂p = V hold for the enlarged phase",
+    "%s: ∂g/∂T = −s and ∂g/∂p = v hold for the enlarged phase",
     (_, { params, window }) => {
       const { params: model } = exaggerated(params, window);
       const phase = model.stretch!.phase;

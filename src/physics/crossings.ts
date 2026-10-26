@@ -1,17 +1,17 @@
-// Where the G curves of two phases cross along one cut.
+// Where the g curves of two phases cross along one cut.
 
 import { PAIRS, type PhasePair } from "./boundaries";
 import { G_TIE, gibbs, thirdPhase, type Params, type Phase, type PlotWindow } from "./gibbs";
 import { findRoots } from "./roots";
 
-/** An isobar (constant p mode, the slice is G(T)) or an isotherm (constant T mode, G(p)). */
+/** An isobar (constant p mode, the slice is g(T)) or an isotherm (constant T mode, g(p)). */
 export type Cut = { kind: "isobar"; p: number } | { kind: "isotherm"; T: number };
 
 export interface Crossing {
   phases: PhasePair;
   T: number;
   p: number;
-  /** True on the lower envelope (the third G lies higher, or ties at the triple point). */
+  /** True on the lower envelope (the third g lies higher, or ties at the triple point). */
   stable: boolean;
 }
 
@@ -29,7 +29,7 @@ export function alongRange(cut: Cut, window: PlotWindow): [number, number] {
 const INTERVALS = 32;
 
 /**
- * The positions x along the cut where G_i = G_j inside the window, scanned on INTERVALS
+ * The positions x along the cut where g_i = g_j inside the window, scanned on INTERVALS
  * steps (in T on an isobar, in ln p on an isotherm, since the p axis is logarithmic) and refined
  * by bisection.
  */
@@ -55,7 +55,7 @@ export function pairRoots(
 }
 
 /**
- * Every crossing of two G curves along the cut inside the window, sorted along the cut. A pair
+ * Every crossing of two g curves along the cut inside the window, sorted along the cut. A pair
  * that does not cross inside the window gives no crossing.
  */
 export function crossings(cut: Cut, params: Params, window: PlotWindow): Crossing[] {

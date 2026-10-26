@@ -141,7 +141,7 @@ test("choosing Custom loads the schematic substance as a starting point", async 
     await expect(field(page, name)).toHaveValue(text);
   }
   await expect(page.locator(".validation")).toBeEmpty();
-  // V_s < V_l: the s-l line slopes forward, further right at the top.
+  // v_s < v_l: the s-l line slopes forward, further right at the top.
   const [top, bottom] = await slEnds(page);
   expect(top).toBeGreaterThan(bottom + 5);
   // The cuts are reset, as for a preset: the isobar halfway between p_tp and p_max on the log axis.
@@ -454,8 +454,9 @@ test("the metastable toggle hides the dashed branches and their guides, not the 
 }) => {
   const metastable = page.locator(".plots .metastable, .readout .metastable");
   const stable = page.locator(".plots .stable");
-  // H₂O's dashed s-l extension is vertical and has an empty box, so a dashed curve is checked.
-  const dashed = page.locator(".slice-panel path.curve.metastable").first();
+  // H₂O's dashed s-l extension is vertical and a condensed g(p) nearly flat, so both have an empty
+  // box; the vapor's dashed curve is checked.
+  const dashed = page.locator('.slice-panel path.curve.metastable[data-phase="v"]').first();
   expect(await metastable.count()).toBeGreaterThan(0);
   await expect(dashed).toBeVisible();
 

@@ -151,10 +151,10 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
   }
 });
 
-test("the overlays do not scroll sideways, down to 320 px", async ({ page }) => {
+test("the overlays do not scroll sideways, down to 280 px", async ({ page }) => {
   // The screen-reader MathML beside each equation is clipped, but would still widen the body.
   for (const name of ["model-details", "about"]) {
-    for (const width of [412, 360, 320]) {
+    for (const width of [412, 360, 320, 280]) {
       await page.setViewportSize({ width, height: 800 });
       const opener = name === "about" ? ".info-button" : ".model-details-button";
       await page.locator(opener).first().click();

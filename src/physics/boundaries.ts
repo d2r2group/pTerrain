@@ -1,4 +1,4 @@
-// Phase boundaries G_i = G_j traced as polylines in (T, p), split into stable and metastable
+// Phase boundaries g_i = g_j traced as polylines in (T, p), split into stable and metastable
 // parts.
 
 import { G_TIE, gibbs, thirdPhase, type Params, type Phase, type PlotWindow } from "./gibbs";
@@ -30,7 +30,7 @@ interface UV {
 }
 
 /**
- * The boundary G_i = G_j inside the window, as polylines that end exactly on the window edges
+ * The boundary g_i = g_j inside the window, as polylines that end exactly on the window edges
  * and are split where the third phase crosses (the triple point). `samples` steps are taken
  * along the tracing variable, evenly in T or in log p, since the p axis is logarithmic. Assumes
  * parameters that pass `validate`.
@@ -45,7 +45,7 @@ export function boundary(
   if (i === j) throw new Error("boundary: the two phases must differ");
   const k = thirdPhase(i, j);
 
-  // The vapor lines are solved for p along isotherms: below RT/V_i G_v − G_i rises
+  // The vapor lines are solved for p along isotherms: below RT/v_i g_v − g_i rises
   // monotonically with p, so the root is unique. The s-l line can be steep, so it is solved for
   // T along isobars, where `validate` guarantees at most one crossing.
   const alongT = i === "v" || j === "v";
@@ -64,7 +64,7 @@ export function boundary(
     if (fa !== 0 && fb !== 0 && Math.sign(fa) === Math.sign(fb)) return null;
     return bisect((v) => f(u, v), v0, v1);
   };
-  // G_k − G_i on the boundary, shifted so that ties count as stable: ≥ 0 means stable.
+  // g_k − g_i on the boundary, shifted so that ties count as stable: ≥ 0 means stable.
   const margin = (u: number, v: number): number => {
     const { T, p } = toPoint(u, v);
     return gibbs(k, T, p, params) - gibbs(i, T, p, params) + G_TIE;

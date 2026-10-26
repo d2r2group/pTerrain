@@ -258,9 +258,18 @@ test("all text is set in Lato, with T, p and g in italic on the axes", async ({ 
     // Units and the minus sign stay upright.
     await expect(label.locator("tspan:not(.symbol)").first()).toHaveCSS("font-style", "normal");
   }
-  // The mean is a g with a bar over it.
-  await expect(page.locator(".slice-panel .y-label .mean")).toHaveCSS(
-    "text-decoration-line",
-    "overline",
+  // g_tp: an upright, smaller subscript, set below the baseline and followed by the units on it.
+  const sub = page.locator(".slice-panel .y-label .sub");
+  await expect(sub).toHaveText("tp");
+  await expect(sub).toHaveCSS("font-style", "normal");
+  const [g, tp, units] = await page.evaluate(() =>
+    // g − g, tp, (kJ/mol): the label is turned a quarter left, so "down" is to the right.
+    [...document.querySelectorAll(".slice-panel .y-label tspan")].slice(2).map((span) => {
+      const r = span.getBoundingClientRect();
+      return { right: r.right, size: r.width };
+    }),
   );
+  expect(tp!.right).toBeGreaterThan(g!.right);
+  expect(tp!.size).toBeLessThan(g!.size);
+  expect(units!.right).toBeCloseTo(g!.right, 0);
 });
