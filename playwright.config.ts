@@ -15,7 +15,14 @@ export default defineConfig({
     // In CI a failed test keeps its trace in test-results/, which the workflow uploads.
     trace: process.env.CI ? "retain-on-failure" : "off",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // Tall enough that the page, which narrows to fit both plots in the window's height, keeps
+  // them at their full size, which the tests' pixel distances assume.
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 960 } },
+    },
+  ],
   webServer: {
     command: `npx vite preview --port ${port} --strictPort`,
     url: `http://localhost:${port}`,

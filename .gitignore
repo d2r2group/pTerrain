@@ -25,3 +25,6 @@ playwright/.cache/
 
 # Design notes, kept locally only
 plan.md
+
+# Other local material (e.g. the LinkedIn clip, other/render.mjs), kept locally only
+other/

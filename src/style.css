@@ -78,7 +78,6 @@ body {
    a media query sees the window, scrollbar included, and would switch about 15 px too late. */
 #app {
   container: app / inline-size;
-  max-width: 76rem;
 }
 
 /* The header: the logo, the main row and the theme button at the far right, on one row. */
@@ -245,9 +244,8 @@ input {
 }
 
 /* The header, the bar, the plots and the column with the cut input and the substance panel. The
-   column sits beside the bar and the plots on wide screens, and under the plots on narrow ones.
-   The plots always stay stacked, so their x axes line up. The last row takes what the column
-   adds below the plots, so the bar's row keeps its height. */
+   column sits beside the plots on wide screens, under the empty space beside the bar, and under
+   the plots on narrow ones. The plots always stay stacked, so their x axes line up. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -274,18 +272,32 @@ input {
   margin-top: 0.75rem;
 }
 
+/* Beside the column, the plots narrow until both fit the window's height, as their 2:1 plot
+   areas take their height from the column's width; the column takes the rest. Of the window,
+   124 px goes above the plots (the page's padding, the header and the bar), 94 px to the two
+   plots' top and bottom margins and 16 px below them, which leaves P = 100svh − 234 px for the
+   two plot areas, each P wide and P / 2 high; their column is P plus 63 px of side margins.
+   Narrowing stops at 160 px high plot areas, their least height, and widening at 55.5rem. The
+   small viewport (svh) keeps the slice in view while the browser's toolbars show. */
 @media (min-width: 60rem) {
   .layout {
-    grid-template-columns: minmax(0, 1fr) 19rem;
-    grid-template-rows: auto auto 1fr;
+    --plots-width: min(55.5rem, max(320px, 100vh - 234px) + 63px);
+    grid-template-columns: minmax(0, var(--plots-width)) minmax(19rem, 1fr);
     grid-template-areas:
       "header header"
-      "bar controls"
+      "bar ."
       "plots controls";
   }
 
+  /* The diagram's top margin (MARGIN.top), so the unit toggle's top edge is the plot area's. */
   .controls {
-    margin-top: 0;
+    margin-top: 12px;
+  }
+
+  @supports (height: 1svh) {
+    .layout {
+      --plots-width: min(55.5rem, max(320px, 100svh - 234px) + 63px);
+    }
   }
 }
 
@@ -625,11 +637,12 @@ input {
   content: "▾";
 }
 
-/* The fieldsets stack in the column beside the plots, and flow into columns when it sits under
-   them at full width. */
+/* The fieldsets flow into as many columns as the panel's width holds, beside the plots or under
+   them. A fieldset is 15.5rem at least: its 1 px borders and 0.75rem padding, the 3rem name, a
+   6rem field for the longest value, the 3.75rem unit and the 0.5rem gaps between them. */
 .parameters form {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr));
   gap: 0.5rem;
   align-items: start;
 }
@@ -653,7 +666,7 @@ input {
 
 .parameters label {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
+  grid-template-columns: 3rem minmax(0, 1fr) 3.75rem;
   gap: 0.5rem;
   align-items: center;
   padding: 0.125rem 0;
@@ -709,7 +722,7 @@ input {
 }
 
 .parameters .name-row {
-  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-columns: 3rem minmax(0, 1fr);
   padding: 0 calc(0.75rem + 1px);
 }
 
@@ -1158,7 +1171,6 @@ input {
   gap: 0.5rem 1.25rem;
   align-items: center;
   justify-content: center;
-  max-width: 76rem;
   margin-top: 1.5rem;
   font-size: 0.85rem;
   color: var(--muted);

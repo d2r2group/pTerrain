@@ -108,7 +108,13 @@ test("choosing Custom opens the parameters, and scrolls to them only under the p
     await select.selectOption("custom");
     await expect(details).toHaveAttribute("open");
     if (under) {
-      expect(Math.abs((await details.boundingBox())!.y), `${width}`).toBeLessThan(1);
+      // At the top of the window, or as near as the page's end lets it come.
+      const { top, end } = await page.evaluate(() => ({
+        top: document.querySelector(".parameters")!.getBoundingClientRect().top,
+        end: document.documentElement.scrollHeight - window.innerHeight - window.scrollY,
+      }));
+      expect(top, `${width}`).toBeGreaterThan(-1);
+      expect(Math.min(top, end), `${width}`).toBeLessThan(1);
     } else {
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
     }

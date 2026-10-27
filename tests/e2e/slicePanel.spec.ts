@@ -289,6 +289,35 @@ test("the two plot areas are the same size, each framed on the sides without an 
   expect(await d(".slice-panel")).toMatch(/^M0,\d+H\d+V0$/);
 });
 
+test("on a landscape tablet the plots narrow to fit the window's height, the column takes the rest", async ({
+  page,
+}) => {
+  // An iPad Air in landscape, below Safari's toolbar.
+  await page.setViewportSize({ width: 1180, height: 746 });
+  // The plots redraw on the resize, after a frame.
+  const bottom = async () => {
+    const box = (await slice(page).boundingBox())!;
+    return box.y + box.height;
+  };
+  await expect.poll(bottom).toBeLessThanOrEqual(746 - 16);
+  expect(await bottom()).toBeGreaterThan(746 - 16 - 2);
+  // The plot area's geometry; a locator's bounding box would take in the frame's stroke.
+  const diagram = await page
+    .locator(".phase-diagram path.frame")
+    .evaluate((el) => el.getBoundingClientRect().toJSON() as DOMRect);
+  // The plot areas keep their 2:1 shape.
+  expect(Math.abs(diagram.width / diagram.height - 2)).toBeLessThan(0.01);
+  // The column beside them, and the theme button above it, reach the page's right padding.
+  for (const selector of [".controls", ".theme-toggle"]) {
+    const box = (await page.locator(selector).boundingBox())!;
+    expect(box.x + box.width, selector).toBeCloseTo(1180 - 16, 0);
+  }
+  // The column starts under the empty space beside the bar, the unit toggle level with the
+  // diagram's top edge.
+  const toggle = (await page.locator(".unit-toggle").boundingBox())!;
+  expect(toggle.y).toBeCloseTo(diagram.y, 0);
+});
+
 test("the panel is shaded under the envelope in the stable phase's color", async ({ page }) => {
   for (const mode of ["constant p", "constant T"] as const) {
     await setMode(page, mode);
