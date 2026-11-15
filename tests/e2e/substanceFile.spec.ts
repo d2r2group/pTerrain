@@ -46,7 +46,7 @@ async function importText(page: Page, text: string, name = "substance.json") {
 async function exportFile(page: Page) {
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: "Export" }).click(),
+    page.getByRole("button", { name: "Export", exact: true }).click(),
   ]);
   return {
     name: download.suggestedFilename(),
@@ -96,7 +96,9 @@ test("the name field shows the substance opened and follows the menu", async ({ 
   await select(page).selectOption("custom");
   await expect(nameField(page)).toHaveValue("Custom");
   // Under Apply and its buttons, and above the Triple point fieldset, as wide as both.
-  const exportBox = (await page.getByRole("button", { name: "Export" }).boundingBox())!;
+  const exportBox = (await page
+    .getByRole("button", { name: "Export", exact: true })
+    .boundingBox())!;
   const row = (await page.locator(".parameters .name-row").boundingBox())!;
   const set = (await page.locator(".parameters fieldset").first().boundingBox())!;
   expect(exportBox.y + exportBox.height).toBeLessThanOrEqual(row.y);
@@ -326,7 +328,9 @@ test("Import and Export sit under Apply, as wide as it, and hide with the panel"
   page,
 }) => {
   await open(page);
-  const buttons = ["Import", "Export"].map((name) => page.getByRole("button", { name }));
+  const buttons = ["Import", "Export"].map((name) =>
+    page.getByRole("button", { name, exact: true }),
+  );
   const boxes = await Promise.all(buttons.map(async (b) => (await b.boundingBox())!));
   const apply = (await applyButton(page).boundingBox())!;
   const name = (await page.locator(".parameters .name-row").boundingBox())!;

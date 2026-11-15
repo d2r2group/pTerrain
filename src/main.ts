@@ -29,7 +29,7 @@ if (!app) throw new Error("pTerrain: #app element is missing from index.html");
 // button), with the theme button at the far right; a bar with the substance menu, the Metastable
 // toggle and Share; then the plots, as wide as the bar, with a column beside them on wide
 // screens, or below on narrow ones: the cut input with the pressure unit, the exaggerated s-l
-// slope checkbox, the readout (for screen readers only), the Figure row and the substance
+// slope checkbox, the readout (for screen readers only), the Export Figure(s) row and the substance
 // panel. All four are items of one grid, so that on a narrow phone the header's and the bar's
 // buttons can share a row. The footer follows, after <main>.
 const header = document.createElement("header");

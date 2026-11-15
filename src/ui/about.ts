@@ -78,7 +78,7 @@ const SECTIONS: readonly { heading: string; keys: readonly Key[] }[] = [
       {
         selector: ".figure-row .figure",
         context: "figure-row",
-        name: "Figure",
+        name: "Export Figure(s)",
         text:
           "Saves the plots as SVG or PNG images, at the current cut or at three (above, " +
           "through and below the triple point), in one ZIP with the substance's JSON file.",

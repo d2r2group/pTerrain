@@ -31,7 +31,7 @@ written in bold under the diagram.
 - **kPa | bar | atm** sets the pressure unit everywhere; clicking the **logo**
   moves the cut through $(T_\mathrm{tp}, p_\mathrm{tp})$.
 - **Metastable** shows or hides the metastable extensions and curves.
-- **Figure** saves the plots as SVG or PNG images, at the current cut or at
+- **Export Figure(s)** saves the plots as SVG or PNG images, at the current cut or at
   three (above, through and below the triple point), in one ZIP with the
   substance's JSON file.
 - **Exaggerate s-l slope** enlarges $\Delta v_\mathrm{fus}$ so that the almost

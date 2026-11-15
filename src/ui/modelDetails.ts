@@ -220,10 +220,10 @@ export function modelDetailsHtml(): string {
 </section>
 <section>
   <h3>Exporting</h3>
-  <p><i>Figure</i> saves three images in the light theme: both plots stacked as on the page, the
-  diagram alone with the tick numbers under its <i>x</i> axis, and the slice alone with its axis
-  moved to the bottom, under the band of stable phases, and the bold transition values under
-  that. Only the whole figure keeps the dotted guide lines. Each plot area is 360 × 180,
+  <p><i>Export Figure(s)</i> saves three images in the light theme: both plots stacked as on the
+  page, the diagram alone with the tick numbers under its <i>x</i> axis, and the slice alone with
+  its axis moved to the bottom, under the band of stable phases, and the bold transition values
+  under that. Only the whole figure keeps the dotted guide lines. Each plot area is 360 × 180,
   540 × 270 or 720 × 360 CSS px, whatever the screen; SVG keeps the regions as paths and the
   text as text, and PNG draws them at 150, 300 or 600 DPI. <i>All unique cuts</i> saves the
   images at three cuts: one through the triple point and one halfway (in log <i>p</i> for

@@ -163,8 +163,8 @@
   margin-top: 0.25rem;
 }
 
-/* Figure on its own row above the Parameters panel, as wide as the column and 44 px high, styled
-   like Import and Export; its menu of cuts, sizes, DPIs and formats opens under it. */
+/* Export Figure(s) on its own row above the Parameters panel, as wide as the column and 44 px
+   high, styled like Import and Export; its menu of cuts, sizes, DPIs and formats opens under it. */
 .figure-box {
   position: relative;
 }
@@ -265,7 +265,7 @@
   outline: none;
 }
 
-/* The note under Figure that the DPI was lowered, over what follows, as a warning. */
+/* The note under Export Figure(s) that the DPI was lowered, over what follows, as a warning. */
 .figure-note {
   position: absolute;
   top: calc(100% + 0.375rem);
