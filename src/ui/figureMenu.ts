@@ -1,9 +1,9 @@
-// The Export Figure(s) button on its own row above the Parameters panel (plan §8 phase 16 (c)), as
+// The Export figure(s) button on its own row above the Parameters panel (plan §8 phase 16 (c)), as
 // ThermoBRIDGE's export row: it saves the plots as SVG or PNG images in one ZIP with the
 // substance's JSON file. Outside the panel's `<details>`, so it works with the panel closed. Its
 // menu holds the cuts (the current cut, or all unique cuts: the three of `seriesCuts`, from the
 // top of the diagram down), the plot size and the PNG's DPI; a DPI too large for the figure is
-// lowered, and a note under Export Figure(s) says so. The choices are kept while the page is open.
+// lowered, and a note under Export figure(s) says so. The choices are kept while the page is open.
 
 import { seriesCuts, seriesName } from "./cutSeries";
 import {
@@ -20,6 +20,7 @@ import type { PlotSize } from "./geometry";
 import { DOWNLOAD, icon, PICTURE } from "./icons";
 import { DEFAULT_DPI, DPIS, fittingDpi } from "./png";
 import { stateAtCut, type State, type Store } from "./state";
+import { formatShort, toUnit } from "./units";
 import { fileName, toLink, toSubstanceFile, type Substance } from "./substanceFile";
 import { download } from "./substancePanel";
 import { zip, type ZipEntry } from "./zip";
@@ -30,7 +31,7 @@ function linkOf(substance: Substance, state: Readonly<State>): string {
   return location.href.replace(/#.*$/, "") + toLink(substance, view);
 }
 
-/** What the Export Figure(s) menu chose: a series or not, the plot size and the PNG's DPI. */
+/** What the Export figure(s) menu chose: a series or not, the plot size and the PNG's DPI. */
 export interface FigureOptions {
   series?: boolean;
   size?: PlotSize;
@@ -104,18 +105,29 @@ const FORMATS: readonly { format: FigureFormat; text: string; title: string }[] 
   { format: "png", text: "PNG", title: "Images at the size and resolution chosen above" },
 ];
 
-/** What the note under Export Figure(s) says when the DPI was lowered from `chosen` to `used`. */
+/** What the note under Export figure(s) says when the DPI was lowered from `chosen` to `used`. */
 export const loweredDpiText = (used: number, chosen: number) =>
   `Saved at ${used} DPI: ${chosen} DPI is more than this browser can draw for a figure this size.`;
+
+/**
+ * The current cut's value as the menu writes it after *Current cut*, short enough for a phone:
+ * "273 K", "0.612 kPa", "6.1e-4 bar".
+ */
+export function cutValueText(state: Readonly<State>): string {
+  const value = state.cuts[state.mode];
+  return state.mode === "isobar"
+    ? `${formatShort(toUnit(value, state.pressureUnit))} ${state.pressureUnit}`
+    : `${formatShort(value)} K`;
+}
 
 /** A plot size as the menu writes it. */
 const sizeText = ({ width, height }: PlotSize) => `${width} × ${height}`;
 
 /**
- * Appends the row to `container`: Export Figure(s) with its menu (the cuts, the plot sizes, the
+ * Appends the row to `container`: Export figure(s) with its menu (the cuts, the plot sizes, the
  * DPIs, then the formats) and the note under it. `plots` and `applied` give the plots and the
  * applied substance at the time of an export, since they are built after the row. The returned
- * `setSwapping` disables Export Figure(s) while the axes swap.
+ * `setSwapping` disables Export figure(s) while the axes swap.
  */
 export function createFigureMenu(
   container: HTMLElement,
@@ -132,7 +144,7 @@ export function createFigureMenu(
   figure.className = "figure";
   figure.innerHTML = icon(PICTURE, 16);
   const text = document.createElement("span");
-  text.textContent = "Export Figure(s)";
+  text.textContent = "Export figure(s)…";
   figure.append(text);
   figure.title = "Save the plots as SVG or PNG images, with the substance's JSON file";
   figure.setAttribute("aria-haspopup", "menu");
@@ -174,6 +186,15 @@ export function createFigureMenu(
   const cuts = radioGroup("cuts", "Cuts", ["Current cut", "All unique cuts"], 0);
   const [currentCut, allCuts] = cuts.radios;
   currentCut!.title = "Save the images at the current cut";
+  // Its value in brackets, kept with the cut, the mode and the unit.
+  const cutValue = document.createElement("span");
+  cutValue.className = "cut-value";
+  currentCut!.append(cutValue);
+  const showCut = (state: Readonly<State>) => {
+    cutValue.textContent = `(${cutValueText(state)})`;
+  };
+  showCut(store.state);
+  store.subscribe(showCut);
   allCuts!.title =
     "Save the images at each distinct cut, from the top of the diagram down: one in each band " +
     "of the same phases, and one through the triple point";
@@ -205,7 +226,7 @@ export function createFigureMenu(
     return item;
   });
   const items = [...cuts.radios, ...sizes.radios, ...dpis.radios, ...formats];
-  // Under Export Figure(s), after an export whose DPI was lowered: visible, and announced.
+  // Under Export figure(s), after an export whose DPI was lowered: visible, and announced.
   const note = document.createElement("p");
   note.className = "figure-note";
   note.setAttribute("role", "status");

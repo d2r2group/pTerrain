@@ -64,6 +64,16 @@ export function formatPressure(kPa: number, unit: PressureUnit): string {
   return `${formatValue(toUnit(kPa, unit))} ${unit}`;
 }
 
+/**
+ * A number in at most six characters: three significant figures from 0.01 to 10⁴ (0.0612, 518,
+ * 5180), else two in e-notation (6.1e-4, 1.2e5).
+ */
+export function formatShort(x: number): string {
+  const a = Math.abs(x);
+  if (a !== 0 && (a < 0.01 || a >= 1e4)) return x.toExponential(1).replace("e+", "e");
+  return formatValue(x);
+}
+
 /** A temperature to one decimal: "273.2 K". */
 export function formatTemperature(T: number): string {
   return `${T.toFixed(1)} K`;

@@ -19,7 +19,7 @@ import { axisSpec } from "./units";
 export type FigureFormat = "svg" | "png";
 
 /**
- * The plot sizes the Export Figure(s) menu offers, CSS px, the same for both plots and half as
+ * The plot sizes the Export figure(s) menu offers, CSS px, the same for both plots and half as
  * tall as wide, and the one chosen at first.
  */
 export const PLOT_SIZES: readonly PlotSize[] = [

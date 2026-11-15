@@ -4,11 +4,11 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { unzip, type ZipRead } from "../zipReader";
 import { plotsDrawn } from "./plots";
 
-// The figure export (plan §8 phase 16 (c)): the Export Figure(s) row above the Parameters panel,
+// The figure export (plan §8 phase 16 (c)): the Export figure(s) row above the Parameters panel,
 // the ZIP it downloads, the images' contents and sizes, the light theme, the vector regions, the
 // fixed plot sizes, the PNG's DPI and the series of all unique cuts.
 
-const figureButton = (page: Page) => page.getByRole("button", { name: "Export Figure(s)" });
+const figureButton = (page: Page) => page.getByRole("button", { name: "Export figure(s)…" });
 const handle = (page: Page) => page.locator(".cut-handle");
 
 const errors = new WeakMap<Page, string[]>();
@@ -411,7 +411,7 @@ test("the menu works by keyboard, and is clean under axe", async ({ page }) => {
   );
 });
 
-test("Export Figure(s) is disabled while the axes swap", async ({ page }) => {
+test("Export figure(s) is disabled while the axes swap", async ({ page }) => {
   await open(page);
   await page.locator(".mode-toggle").click();
   await expect(figureButton(page)).toBeDisabled();
@@ -439,7 +439,7 @@ test("the row sits above the Parameters panel and works with the panel closed", 
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("Export Figure(s) and its menu stay usable at 390 × 844", async ({ page }) => {
+  test("Export figure(s) and its menu stay usable at 390 × 844", async ({ page }) => {
     await open(page);
     const button = (await figureButton(page).boundingBox())!;
     expect(button.height).toBeGreaterThanOrEqual(44);

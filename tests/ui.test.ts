@@ -59,7 +59,8 @@ import {
   type Mode,
   type State,
 } from "../src/ui/state";
-import { formatPressure, formatValue } from "../src/ui/units";
+import { cutValueText } from "../src/ui/figureMenu";
+import { formatPressure, formatShort, formatValue } from "../src/ui/units";
 
 const { h2o, co2 } = PRESETS;
 const win: PlotWindow = h2o.window;
@@ -269,6 +270,22 @@ describe("controls", () => {
       "0.0123",
       "0",
     ]);
+  });
+
+  it("formats short values in at most six characters", () => {
+    const values = [0.611654, 517.964, 5183.2, 0.012345, 0.000611654, 12345, 220640, 0];
+    const texts = values.map(formatShort);
+    expect(texts).toEqual(["0.612", "518", "5180", "0.0123", "6.1e-4", "1.2e4", "2.2e5", "0"]);
+    for (const t of texts) expect(t.length).toBeLessThanOrEqual(6);
+  });
+
+  it("writes the current cut's value for the figure menu in the shown unit", () => {
+    const store = new Store(h2o, "isobar", "bar");
+    store.setCut(0.61165);
+    expect(cutValueText(store.state)).toBe("6.1e-3 bar");
+    store.setMode("isotherm");
+    store.setCut(273.16);
+    expect(cutValueText(store.state)).toBe("273 K");
   });
 
   it.each(MODES)("%s: the readout lists every crossing along the cut, in order", (mode) => {

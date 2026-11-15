@@ -77,7 +77,7 @@ function setLabel(button: HTMLButtonElement, body: string, text: string): void {
 export interface SubstancePanel {
   /** Imports the fragment's substance and sets its view, or warns about it. */
   openLink(fragment: string): void;
-  /** The applied substance, which Export, Share and Export Figure(s) write: not unapplied edits. */
+  /** The applied substance, which Export, Share and Export figure(s) write: not unapplied edits. */
   applied(): Substance;
 }
 

@@ -4,7 +4,7 @@
 
 import { crc32 } from "./zip";
 
-/** The DPIs the Export Figure(s) menu offers, and the one chosen at first. */
+/** The DPIs the Export figure(s) menu offers, and the one chosen at first. */
 export const DPIS = [150, 300, 600] as const;
 export const DEFAULT_DPI = 300;
 

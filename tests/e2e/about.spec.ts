@@ -47,7 +47,7 @@ test("it opens a modal overlay that summarizes the app and explains each control
     "Share",
     "kPa | bar | atm",
     "Exaggerate s-l slope",
-    "Export Figure(s)",
+    "Export figure(s)…",
     "Parameters",
     "Apply",
     "Import and Export",

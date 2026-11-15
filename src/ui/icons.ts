@@ -39,7 +39,7 @@ export const SHARE =
   '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>';
 
 /** Path data of the up/down chevrons on the cut handle's 11 px knob, centered on (0, 0). */
-/** A framed picture with a sun and a hill: Export Figure(s). */
+/** A framed picture with a sun and a hill: Export figure(s). */
 export const PICTURE =
   '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>' +
   '<path d="M21 15l-5-5L5 21"/>';
