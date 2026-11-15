@@ -52,6 +52,14 @@ export function frameBottomRight({ width, height }: PlotSize): string {
   return `M0,${height}H${width}V0`;
 }
 
+/**
+ * `axis` with d3's offset fixed at 0 for a figure export. d3 shifts an axis by 0.5 px on a 1×
+ * screen only, so an export from a phone and one from a desktop would differ.
+ */
+export function fixedOffset<A extends { offset(offset: number): A }>(axis: A, fixed: boolean): A {
+  return fixed ? axis.offset(0) : axis;
+}
+
 /** The inner plot area, in CSS px. */
 export interface PlotSize {
   width: number;

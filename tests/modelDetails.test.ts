@@ -32,7 +32,7 @@ describe("model details", () => {
     expect(shown.size).toBe(count);
   });
 
-  it("holds the six sections, with the table, and the development note", () => {
+  it("holds the seven sections, with the table, and the development note", () => {
     const html = modelDetailsHtml();
     const headings = [...html.matchAll(/<h3>([^<]*)<\/h3>/g)].map(([, h]) => h);
     expect(headings).toEqual([
@@ -42,6 +42,7 @@ describe("model details", () => {
       "Substance data",
       "Limits",
       "Numerics",
+      "Exporting",
     ]);
     expect(html).toContain(substanceTable());
     expect(html).toMatch(/class="disclaimer">Claude Opus 5\.5/);

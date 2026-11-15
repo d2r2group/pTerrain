@@ -1,10 +1,10 @@
 // The linked slice panel under the diagram: g(T) along the isobar or
 // g(p) along the isotherm, on the diagram's x scale, with the lower envelope solid, the rest
 // dashed, the panel shaded under the envelope in the stable phase's color, a band of the stable
-// phases along its bottom edge, and a marker and a dotted guide line at each crossing. g is drawn
-// as g − g_tp, where g_tp is the value all three share at the triple point, so each slope is −s
-// or v and the curves fall with T and rise with p, as in a textbook. The g axis follows the cut,
-// at the fitted height or one typed in the window fields.
+// phases along its bottom edge with their letters over it, and a marker and a dotted guide line
+// at each crossing. g is drawn as g − g_tp, where g_tp is the value all three share at the triple
+// point, so each slope is −s or v and the curves fall with T and rise with p, as in a textbook.
+// The g axis follows the cut, at the fitted height or one typed in the window fields.
 
 import {
   area,
@@ -21,8 +21,10 @@ import {
 import { alongRange, type Crossing, type Cut } from "../physics/crossings";
 import { gibbs, type Params } from "../physics/gibbs";
 import { alongCut, gAnchor, sliceSegments, type SliceSegment } from "../physics/slice";
+import { placeBandLabels, type BandLabel, type BandLabelRun } from "./bandLabels";
 import { AXIS_LABELS, setAxisLabel } from "./labels";
-import { frameBottomRight, SLICE_MARGIN, type PlotSize } from "./geometry";
+import { fixedOffset, frameBottomRight, SLICE_MARGIN, type PlotSize } from "./geometry";
+import type { PlotHandle } from "./phaseDiagram";
 import { attachPanel, fitSvg, placeYLabel } from "./panel";
 import { cutOf, type State, type Store } from "./state";
 import { axisSpec, formatPressure, formatTemperature } from "./units";
@@ -30,6 +32,9 @@ import { axisSpec, formatPressure, formatTemperature } from "./units";
 const MARGIN = SLICE_MARGIN;
 /** Height of the band of stable phases along the panel's bottom edge, px. */
 const BAND_PX = 4;
+/** The band letters' baseline above the band, px, and their width per character before layout. */
+const LABEL_LIFT = 3;
+const LABEL_PX_PER_CHAR = 7;
 /** A jump of the g axis center larger than this, px, glides instead. */
 const GLIDE_PX = 4;
 /** Length of that glide, ms. */
@@ -43,11 +48,18 @@ interface SliceData {
   segments: SliceSegment[];
 }
 
-/** Builds the slice panel inside `container` and keeps it in sync with `store`. */
-export function createSlicePanel(container: HTMLElement, store: Store): void {
+/** Slice panels built so far, which number their ids. */
+let panelCount = 0;
+
+/**
+ * Builds the slice panel inside `container`, keeps it in sync with `store`, and returns its handle
+ * (as the diagram's: a draw at a plot size, for the figure export).
+ */
+export function createSlicePanel(container: HTMLElement, store: Store): PlotHandle {
   const root = select(container).classed("slice-panel", true);
   const svg = root.append("svg").attr("role", "img");
-  const clipId = `slice-clip-${Math.random().toString(36).slice(2)}`;
+  // Numbered, not random, so that a figure export's SVG text is the same on every device.
+  const clipId = `slice-clip-${++panelCount}`;
   const clipRect = svg.append("defs").append("clipPath").attr("id", clipId).append("rect");
   const plot = svg.append("g").attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
   const frame = plot.append("path").attr("class", "frame");
@@ -57,6 +69,8 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
   const band = plot.append("g").attr("class", "stable-band");
   const curves = plot.append("g").attr("class", "curves").attr("clip-path", `url(#${clipId})`);
   const guides = plot.append("g").attr("class", "guides");
+  // Each stable phase's letter over its run of the band; the readout already names the phases.
+  const bandLabels = plot.append("g").attr("class", "band-labels").attr("aria-hidden", "true");
   const markers = plot.append("g").attr("class", "markers");
   const axes = svg.append("g").attr("class", "axes");
   // The x axis is on top, under the diagram's own x-axis label, which names it too.
@@ -65,10 +79,16 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
   const yLabel = axes.append<SVGTextElement>("text").attr("class", "axis-label y-label");
   setAxisLabel(yLabel.node() as SVGTextElement, AXIS_LABELS.G());
 
-  let size: PlotSize = { width: 0, height: 0 };
+  /** The plot size the container last gave, and the one the panel last drew at. */
+  let observed: PlotSize = { width: 0, height: 0 };
+  let size: PlotSize = observed;
+  /** The state last drawn: the store's, or an export's. */
+  let drawn: Readonly<State> = store.state;
+  /** Whether the last draw was a figure export's, which fixes the axes' offset. */
+  let exporting = false;
   /** Half the g axis's height, kJ/mol: the typed g range's, or the fitted one's (`gHalfSpan`). */
   const halfOf = ({ gRange, gFit }: Readonly<State>) => (gRange ?? gFit) / 2;
-  let half = halfOf(store.state);
+  let half = halfOf(drawn);
   let data: SliceData | null = null;
   /** The g axis center as drawn, kJ/mol; it lags the cut's `gCenter` while a glide runs. */
   let shown = 0;
@@ -78,8 +98,8 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
 
   // In kPa for the curves; the axis is drawn in the shown unit at the same positions.
   const xScale = () => {
-    const cut = cutOf(store.state);
-    const [lo, hi] = alongRange(cut, store.state.window);
+    const cut = cutOf(drawn);
+    const [lo, hi] = alongRange(cut, drawn.window);
     return (cut.kind === "isobar" ? scaleLinear() : scaleLog())
       .domain([lo, hi])
       .range([0, size.width]);
@@ -95,7 +115,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
       .range([size.height, 0]);
     // No outer ticks, as on the diagram: an end of an axis gets a tick only where it is a major one.
     yAxis.attr("transform", `translate(${MARGIN.left},${MARGIN.top})`).call(
-      axisLeft(y)
+      fixedOffset(axisLeft(y), exporting)
         .ticks(Math.max(2, Math.floor(size.height / 50)))
         .tickSizeOuter(0),
     );
@@ -134,6 +154,17 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
       .attr("data-phase", (d) => d.phase)
       .attr("d", (d) => path(d.points));
 
+    drawBandLabels(
+      segments
+        .filter((s) => s.stable)
+        .map((s) => ({
+          name: s.phase,
+          phase: s.phase,
+          x0: x(s.points[0]![0]),
+          x1: x(s.points.at(-1)![0]),
+        })),
+    );
+
     const px = (c: Crossing) => x(alongCut(cut, c));
     const py = (c: Crossing) => y(gibbs(c.phases[0], c.T, c.p, params));
     // A metastable crossing of a cut in one phase only can lie off the panel (see gHalfSpan): its
@@ -164,9 +195,29 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     svg.attr(
       "aria-label",
       cut.kind === "isobar"
-        ? `g(T) along the isobar at ${formatPressure(cut.p, store.state.pressureUnit)}`
+        ? `g(T) along the isobar at ${formatPressure(cut.p, drawn.pressureUnit)}`
         : `g(p) along the isotherm at ${formatTemperature(cut.T)}`,
     );
+  };
+
+  /** The runs' letters, measured in place with a probe and placed by `placeBandLabels`. */
+  const drawBandLabels = (runs: readonly Omit<BandLabelRun, "width">[]) => {
+    const probe = bandLabels.append("text").attr("class", "band-label");
+    const node = probe.node() as SVGTextElement;
+    const measured = runs.map((r) => {
+      node.textContent = r.name;
+      return { ...r, width: node.getComputedTextLength() || LABEL_PX_PER_CHAR * r.name.length };
+    });
+    probe.remove();
+    bandLabels
+      .selectAll<SVGTextElement, BandLabel>("text")
+      .data(placeBandLabels(measured, size.width))
+      .join("text")
+      .attr("class", "band-label")
+      .attr("data-phase", (d) => d.phase)
+      .attr("x", (d) => d.x)
+      .attr("y", size.height - BAND_PX - LABEL_LIFT)
+      .text((d) => d.name);
   };
 
   const stopGlide = () => {
@@ -201,8 +252,8 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
    */
   const drawSlice = (smooth = false) => {
     // The model, which has an exaggerated s-l slope while that view is on.
-    const { model: params, window, crossings: found } = store.state;
-    const cut = cutOf(store.state);
+    const { model: params, window, crossings: found } = drawn;
+    const cut = cutOf(drawn);
     // Metastable runs first, so the envelope is drawn on top of them.
     const segments = sliceSegments(cut, params, window, { found }).sort(
       (s, t) => Number(s.stable) - Number(t.stable),
@@ -230,7 +281,7 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     fitSvg(svg.node() as SVGSVGElement, size, MARGIN);
     clipRect.attr("width", size.width).attr("height", size.height);
     frame.attr("d", frameBottomRight(size));
-    const { mode, window, pressureUnit } = store.state;
+    const { mode, window, pressureUnit } = drawn;
     const x = axisSpec(
       mode === "isobar" ? "T" : "p",
       window,
@@ -240,11 +291,17 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
     );
     xAxis
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-      .call(axisTop(x.scale).tickValues(x.ticks).tickFormat(x.format).tickSizeOuter(0));
+      .call(
+        fixedOffset(axisTop(x.scale), exporting)
+          .tickValues(x.ticks)
+          .tickFormat(x.format)
+          .tickSizeOuter(0),
+      );
     drawSlice();
   };
 
   store.subscribe((state, prev) => {
+    drawn = state;
     if (
       state.model !== prev.model ||
       state.window !== prev.window ||
@@ -260,9 +317,21 @@ export function createSlicePanel(container: HTMLElement, store: Store): void {
   });
 
   attachPanel(container, store, (next) => {
-    size = next;
+    observed = size = next;
+    exporting = false;
     drawAll();
   });
+
+  return {
+    svg: svg.node() as SVGSVGElement,
+    draw(state, at) {
+      exporting = at !== undefined;
+      size = at ?? observed;
+      drawn = state;
+      half = halfOf(state);
+      drawAll();
+    },
+  };
 }
 
 function prefersReducedMotion(): boolean {

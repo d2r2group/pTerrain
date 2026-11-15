@@ -16,6 +16,7 @@ import {
   blendMatrix,
   cutY,
   lerpAffine,
+  fixedOffset,
   frameTopRight,
   MARGIN,
   projection,
@@ -83,15 +84,37 @@ interface TransitionValue {
   text: string;
 }
 
-/** Builds the diagram inside `container` and keeps it in sync with `store`. */
-export function createPhaseDiagram(container: HTMLElement, store: Store): void {
+/** The diagram's SVG, and a draw of a state at a plot size, as the figure export uses them. */
+export interface PlotHandle {
+  svg: SVGSVGElement;
+  /**
+   * Draws `state` at `size`, for an export: with d3's axis offset 0, the canvas left as it is, and
+   * its mode shown at once. Without `size`, at the size the container gives, the canvas painted.
+   */
+  draw(state: Readonly<State>, size?: PlotSize): void;
+}
+
+/** The diagram's handle, which also tells when the axes start and stop swapping. */
+export interface DiagramHandle extends PlotHandle {
+  /** Calls `listener` with true when a swap starts and false when it ends. */
+  onSwap(listener: (swapping: boolean) => void): void;
+}
+
+/** Diagrams built so far, which number their ids. */
+let diagramCount = 0;
+
+/**
+ * Builds the diagram inside `container`, keeps it in sync with `store`, and returns its handle.
+ */
+export function createPhaseDiagram(container: HTMLElement, store: Store): DiagramHandle {
   const root = select(container).classed("phase-diagram", true);
   const canvas = root.append("canvas").attr("class", "regions").attr("aria-hidden", "true");
   const svg = root
     .append("svg")
     .attr("role", "img")
     .attr("aria-label", "p-T phase diagram with a horizontal cut");
-  const hatchId = `reach-hatch-${Math.random().toString(36).slice(2)}`;
+  // Numbered, not random, so that a figure export's SVG text is the same on every device.
+  const hatchId = `reach-hatch-${++diagramCount}`;
   svg
     .append("defs")
     .append("pattern")
@@ -155,21 +178,33 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   face.append("path").attr("class", "cut-handle-grip").attr("d", HANDLE_GRIP);
   const markers = plot.append("g").attr("class", "markers");
 
-  let size: PlotSize = { width: 0, height: 0 };
+  /** The plot size the container last gave, and the one the diagram last drew at. */
+  let observed: PlotSize = { width: 0, height: 0 };
+  let size: PlotSize = observed;
+  /** The state last drawn: the store's, or an export's. */
+  let drawn: Readonly<State> = store.state;
+  /** Whether the last draw was a figure export's, which fixes the axes' offset. */
+  let exporting = false;
   let traced: Traced[] = [];
+  /** The model and window `traced` holds the boundaries of. */
+  let tracedFor: Readonly<State> | null = null;
   /** Each mode's label points, and what they were placed for, so a cut drag reuses them. */
   let labels: Record<Mode, PhaseLabel[]> = { isobar: [], isotherm: [] };
   let labelsFor: { state: Readonly<State> | null; size: PlotSize } = { state: null, size };
-  /** The mode currently drawn; it lags `store.state.mode` while the swap animates. */
+  /** The mode currently drawn; it lags the drawn state's mode while the swap animates. */
   let shown: Mode = store.state.mode;
   let swap: { timer: Timer; to: Mode } | null = null;
+  const swapListeners = new Set<(swapping: boolean) => void>();
   /**
    * Each mode's stable-phase grid; the colors are applied on every paint, so a theme change keeps
    * them.
    */
   const rasters = new RasterCache();
 
-  const trace = ({ model, window }: Readonly<State>) => {
+  const trace = (state: Readonly<State>) => {
+    if (tracedFor?.model === state.model && tracedFor.window === state.window) return;
+    const { model, window } = state;
+    tracedFor = state;
     traced = PAIRS.flatMap(([i, j]) =>
       boundary(i, j, model, window).map((seg) => ({ pair: `${i}-${j}`, ...seg })),
     );
@@ -181,7 +216,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
 
   /** Paints the shown mode's regions, from `rasters` where it holds that mode's grid. */
   const paintRegions = () => {
-    const { model, window } = store.state;
+    const { model, window } = drawn;
     const dpr = Math.min(MAX_DPR, globalThis.devicePixelRatio || 1);
     const cols = Math.max(1, Math.round(size.width * dpr));
     const rows = Math.max(1, Math.round(size.height * dpr));
@@ -211,7 +246,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
    * top end. The cut stops at their edges.
    */
   const drawReach = () => {
-    const { window, limits } = store.state;
+    const { window, limits } = drawn;
     const [lo, hi] = limits[shown];
     const [a, b] = cutBounds(shown, window);
     const strips: { side: string; y0: number; y1: number }[] = [];
@@ -243,14 +278,14 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
       .attr("class", (d) => `boundary ${d.stable ? "stable" : "metastable"}`)
       .attr("data-pair", (d) => d.pair)
       .attr("d", (d) => path(d.points));
-    const tp = triplePoint(store.state.params);
+    const tp = triplePoint(drawn.params);
     const [x, y] = toScreen(m, tp.T, tp.p);
     triple.attr("cx", x).attr("cy", y);
   };
 
   /** The "slope exaggerated" note beside the drawn s-l line's far end, clear of the phase names. */
   const drawNote = () => {
-    const spot = exaggerating(store.state) ? noteSpot() : null;
+    const spot = exaggerating(drawn) ? noteSpot() : null;
     if (!spot) {
       exagNote.attr("visibility", "hidden");
       return;
@@ -264,7 +299,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
 
   /** Where the note goes for the shown mode, or null without a stable s-l line. */
   const noteSpot = () => {
-    const m = projection(shown, store.state.window, size);
+    const m = projection(shown, drawn.window, size);
     const sl = traced
       .filter((d) => d.pair === "s-l" && d.stable)
       .flatMap((d) => d.points)
@@ -289,7 +324,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
    * window and the plot size only, so it is redone when one of them changes, not on a cut drag.
    */
   const placeLabels = () => {
-    const state = store.state;
+    const state = drawn;
     const prev = labelsFor.state;
     if (
       prev &&
@@ -319,7 +354,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
    * A phase labeled in one mode only keeps that mode's point.
    */
   const drawLabels = (from: Mode, to: Mode, t: number) => {
-    const { window } = store.state;
+    const { window } = drawn;
     const p0 = projection(from, window, size);
     const p1 = projection(to, window, size);
     const at = (mode: Mode, phase: Phase) => labels[mode].find((l) => l.phase === phase);
@@ -341,7 +376,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   };
 
   const drawAxes = () => {
-    const { window, pressureUnit: unit } = store.state;
+    const { window, pressureUnit: unit } = drawn;
     const { x: across, y: up } = AXES[shown];
     const x = axisSpec(across, window, unit, [0, size.width], Math.floor(size.width / 80));
     const y = axisSpec(up, window, unit, [size.height, 0], Math.floor(size.height / 50));
@@ -352,14 +387,19 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
     // the row under the diagram is left to the bold transition values. No outer ticks on either
     // axis: an end of the window gets a tick only where it is a major one.
     xAxis.call(
-      axisBottom(x.scale)
+      fixedOffset(axisBottom(x.scale), exporting)
         .tickValues(x.ticks)
         .tickFormat(() => "")
         .tickSizeOuter(0),
     );
     yAxis
       .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`)
-      .call(axisLeft(y.scale).tickValues(y.ticks).tickFormat(y.format).tickSizeOuter(0));
+      .call(
+        fixedOffset(axisLeft(y.scale), exporting)
+          .tickValues(y.ticks)
+          .tickFormat(y.format)
+          .tickSizeOuter(0),
+      );
     xLabel
       .attr("x", MARGIN.left + size.width / 2)
       .attr("y", MARGIN.top + size.height + MARGIN.bottom - 6);
@@ -369,7 +409,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   };
 
   const drawCut = () => {
-    const { window, cuts, pressureUnit } = store.state;
+    const { window, cuts, pressureUnit } = drawn;
     const value = cuts[shown];
     const y = cutY(shown, value, window, size);
     for (const l of [cutLine, cutHit]) {
@@ -378,7 +418,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
     // The values are in the shown unit, as the slider's are.
     const isobar = shown === "isobar";
     const shownValue = (v: number) => (isobar ? toUnit(v, pressureUnit) : v);
-    const [lo, hi] = store.state.limits[shown];
+    const [lo, hi] = drawn.limits[shown];
     handle
       .attr("transform", `translate(${size.width},${y})`)
       .attr("aria-label", `${CUT_LABEL[shown]} (${isobar ? pressureUnit : "K"})`)
@@ -394,7 +434,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
 
   /** A marker where the cut meets each boundary, and a guide line from it down to the slice. */
   const drawGuides = () => {
-    const state = store.state;
+    const state = drawn;
     const { model, window, cuts } = state;
     // The store's crossings are the current mode's, which is the shown one outside a swap.
     const found =
@@ -430,7 +470,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
    * value.
    */
   const drawValues = (found: readonly Crossing[], xOf: (c: Crossing) => number) => {
-    const { pressureUnit } = store.state;
+    const { pressureUnit } = drawn;
     const items: TransitionValue[] = [];
     for (const c of found) {
       if (!c.stable) continue;
@@ -475,16 +515,19 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
 
   const drawAll = () => {
     fitSvg(svg.node() as SVGSVGElement, size, MARGIN);
-    canvas
-      .style("left", `${MARGIN.left}px`)
-      .style("top", `${MARGIN.top}px`)
-      .style("width", `${size.width}px`)
-      .style("height", `${size.height}px`)
-      .style("transform", null);
+    // An export leaves the canvas as it is; the draw back repaints it.
+    if (!exporting) {
+      canvas
+        .style("left", `${MARGIN.left}px`)
+        .style("top", `${MARGIN.top}px`)
+        .style("width", `${size.width}px`)
+        .style("height", `${size.height}px`)
+        .style("transform", null);
+      paintRegions();
+    }
     frame.attr("d", frameTopRight(size));
-    paintRegions();
     drawReach();
-    drawCurves(projection(shown, store.state.window, size));
+    drawCurves(projection(shown, drawn.window, size));
     placeLabels();
     drawLabels(shown, shown, 0);
     drawNote();
@@ -499,6 +542,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
     shown = swap.to;
     swap = null;
     root.classed("swapping", false);
+    for (const listener of swapListeners) listener(false);
     return true;
   };
 
@@ -522,11 +566,12 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
       return;
     }
     const from = shown;
-    const { window } = store.state;
+    const { window } = drawn;
     const p0 = projection(from, window, size);
     const p1 = projection(to, window, size);
     const el = canvas.node() as HTMLCanvasElement;
     root.classed("swapping", true);
+    for (const listener of swapListeners) listener(true);
     swap = {
       to,
       timer: timer((elapsed) => {
@@ -548,6 +593,7 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   );
 
   store.subscribe((state, prev) => {
+    drawn = state;
     if (state.mode !== prev.mode) endDrag();
     if (state.model !== prev.model || state.window !== prev.window) {
       // A running swap stops without a frame of its own: one redraw shows the new state.
@@ -568,7 +614,8 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
 
   attachPanel(container, store, (next) => {
     stopSwap();
-    size = next;
+    observed = size = next;
+    exporting = false;
     drawAll();
   });
 
@@ -587,6 +634,22 @@ export function createPhaseDiagram(container: HTMLElement, store: Store): void {
   });
 
   trace(store.state);
+
+  return {
+    svg: svg.node() as SVGSVGElement,
+    draw(state, at) {
+      stopSwap();
+      exporting = at !== undefined;
+      size = at ?? observed;
+      drawn = state;
+      shown = state.mode;
+      trace(state);
+      drawAll();
+    },
+    onSwap(listener) {
+      swapListeners.add(listener);
+    },
+  };
 }
 
 /**

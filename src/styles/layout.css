@@ -1,0 +1,330 @@
+/* The page layout (plan §4.2): the grid of the header, the bar, the plots and the column, the
+   exaggerated s-l slope box, the cut slider and number field, the bar above the plots with the
+   phone breakpoints, and the footer. */
+
+/* The header, the bar, the plots and the column with the cut input and the substance panel. The
+   column sits beside the plots on wide screens, under the empty space beside the bar, and under
+   the plots on narrow ones. The plots always stay stacked, so their x axes line up. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "header"
+    "bar"
+    "plots"
+    "controls";
+  gap: 0 1.5rem;
+  align-items: start;
+}
+
+.plots {
+  grid-area: plots;
+  min-width: 0;
+}
+
+.controls {
+  grid-area: controls;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  margin-top: 0.75rem;
+}
+
+/* Beside the column, the plots narrow until both fit the window's height, as their 2:1 plot
+   areas take their height from the column's width; the column takes the rest. Of the window,
+   124 px goes above the plots (the page's padding, the header and the bar), 94 px to the two
+   plots' top and bottom margins and 16 px below them, which leaves P = 100svh − 234 px for the
+   two plot areas, each P wide and P / 2 high; their column is P plus 63 px of side margins.
+   Narrowing stops at 160 px high plot areas, their least height, and widening at 55.5rem. The
+   small viewport (svh) keeps the slice in view while the browser's toolbars show. */
+@media (min-width: 60rem) {
+  .layout {
+    --plots-width: min(55.5rem, max(320px, 100vh - 234px) + 63px);
+    grid-template-columns: minmax(0, var(--plots-width)) minmax(19rem, 1fr);
+    grid-template-areas:
+      "header header"
+      "bar ."
+      "plots controls";
+  }
+
+  /* The diagram's top margin (MARGIN.top), so the unit toggle's top edge is the plot area's. */
+  .controls {
+    margin-top: 12px;
+  }
+
+  @supports (height: 1svh) {
+    .layout {
+      --plots-width: min(55.5rem, max(320px, 100svh - 234px) + 63px);
+    }
+  }
+}
+
+/* The exaggerated s-l slope checkbox, above the Parameters panel; 44 px high. The
+   factor goes on a line of its own under the label, so the narrow column does not wrap both. */
+.exaggerate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.exaggerate input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--fg);
+}
+
+.exaggerate .factor {
+  grid-column: 2;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.exaggerate .factor:empty {
+  display: none;
+}
+
+/* Cut slider and number field (a fallback for dragging, and for keyboard users). */
+.cut-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6rem;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+}
+
+/* The label, with the pressure unit toggle to its right. */
+.cut-input .cut-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cut-input label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.cut-input input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--fg);
+}
+
+.cut-input input[type="number"],
+.substance input,
+.substance select {
+  min-height: 2.25rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+/* The bar above the plots, as wide as them: the substance menu, filling it up to the
+   Metastable toggle and Share at the right end. Share keeps its width as its label turns to
+   *Copied*. */
+.plot-bar {
+  grid-area: bar;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.plot-bar .preset {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plot-bar select {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.plot-bar > button {
+  display: inline-flex;
+  flex: none;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.plot-bar .share {
+  min-width: 6.5rem;
+}
+
+.plot-bar .icon,
+.plot-bar .eye {
+  display: block;
+  flex: none;
+}
+
+/* Metastable and Share icon only together with the compact header, below 23.5rem (376 px) of page
+   width, where the menu is about as wide as Metastable in full (126 px against 130 px). Share is
+   still named by its label, which screen readers keep. */
+@container app (max-width: 23.5rem) {
+  .plot-bar .metastable-toggle,
+  .plot-bar .share {
+    min-width: 44px;
+    padding: 0;
+  }
+
+  /* The button keeps "Metastable" as its aria-label. */
+  .metastable-toggle .label {
+    display: none;
+  }
+
+  .plot-bar .share span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Below 20.5rem (328 px) of page width, a 360 px window, the header and the bar give up their
+   boxes, so that their items join the layout grid: the logo, the info button and the theme button
+   on one row, the p | T toggle, Metastable and Share under them, all 44 px wide and evenly spread
+   across the page, and the substance menu under those, as wide as the page. */
+@container app (width < 20.5rem) {
+  header,
+  .main-row,
+  .plot-bar {
+    display: contents;
+  }
+
+  .layout {
+    grid-template-columns: 44px 1fr 44px 1fr 44px;
+    grid-template-areas:
+      "logo logo logo info theme"
+      "mode . eye . share"
+      "menu menu menu menu menu"
+      "plots plots plots plots plots"
+      "controls controls controls controls controls";
+    row-gap: 0.5rem;
+    column-gap: 0;
+    align-items: center;
+  }
+
+  .mode-toggle {
+    grid-area: mode;
+  }
+
+  .info-button {
+    grid-area: info;
+    justify-self: end;
+  }
+
+  .metastable-toggle {
+    grid-area: eye;
+  }
+
+  .plot-bar .share {
+    grid-area: share;
+  }
+
+  .plot-bar .preset {
+    grid-area: menu;
+  }
+
+  .controls {
+    margin-top: 0.25rem;
+  }
+}
+
+.parameters summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.parameters summary::before {
+  content: "▸";
+  margin-right: 0.5rem;
+}
+
+.parameters[open] summary::before {
+  content: "▾";
+}
+
+/* The footer: centered under the plots and their column, in the muted small
+   type of the factor line; the link and the button share one line on a phone if they fit. */
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.site-footer a {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  color: var(--d2r2);
+}
+
+.site-footer a .icon {
+  flex: none;
+}
+
+.site-footer .repo-link {
+  color: var(--fg);
+}
+
+/* Styled like the main row's buttons, 44 px high. */
+.model-details-button {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* On a 412 px phone the two links and the button, with the full gaps and padding, take 376 of
+   the 380 px in Lato, too close for text that renders a little wider elsewhere or in the
+   fallback shown until Lato has loaded, so they tighten: 340 px in Lato, 372 px in Verdana. */
+@media (max-width: 33.5rem) {
+  .site-footer {
+    column-gap: 0.6rem;
+  }
+
+  .model-details-button {
+    padding: 0 0.5rem;
+  }
+
+  .model-details-button .button-math {
+    margin-right: 0.35rem;
+  }
+}

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { plotsDrawn } from "./plots";
 
 const handle = (page: Page) => page.locator(".cut-handle");
 const value = async (page: Page) => Number(await handle(page).getAttribute("aria-valuenow"));
@@ -13,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   page.on("pageerror", (err) => seen.push(err.message));
   // The tests are written for H₂O; a first visit opens on CO₂ (tested below).
   await page.goto("./#h2o");
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
   await page.locator(".parameters summary").click();
 });
 
@@ -67,7 +68,7 @@ test("a first visit opens on CO₂, first in the menu, which switches the substa
   page,
 }) => {
   await page.goto("./");
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
   await page.locator(".parameters summary").click();
   const select = page.getByRole("combobox", { name: "Substance" });
   await expect(select).toHaveValue("co2");
@@ -103,7 +104,7 @@ test("choosing Custom opens the parameters, and scrolls to them only under the p
   ] as const) {
     await page.setViewportSize({ width, height: 700 });
     await page.goto("./");
-    await expect(page.locator(".phase-diagram svg")).toBeVisible();
+    await plotsDrawn(page);
     await expect(details).not.toHaveAttribute("open");
     await select.selectOption("custom");
     await expect(details).toHaveAttribute("open");
@@ -561,7 +562,7 @@ test("the unit survives a reload and keeps the preset selected", async ({ page }
   await expect(select).toHaveValue("h2o");
   await page.getByRole("button", { name: "atm" }).click();
   await page.reload();
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
   await expect(page.getByRole("button", { name: "atm" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".phase-diagram .y-label")).toHaveText("p (atm)");
   // The reload drops the H₂O link, so the page opens on CO₂, which the unit keeps selected too.

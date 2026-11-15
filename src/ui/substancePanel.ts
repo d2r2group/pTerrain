@@ -73,10 +73,25 @@ function setLabel(button: HTMLButtonElement, body: string, text: string): void {
   button.append(label);
 }
 
-/** What the panel offers `main.ts`: opening a share link's fragment. */
+/** What the panel offers `main.ts`: opening a share link's fragment, and the applied substance. */
 export interface SubstancePanel {
   /** Imports the fragment's substance and sets its view, or warns about it. */
   openLink(fragment: string): void;
+  /** The applied substance, which Export, Share and Figure write: not unapplied edits. */
+  applied(): Substance;
+}
+
+/** Saves `blob` as a download named `name`. */
+export function download(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  // Revoked later, since some browsers start the download only after the click returns.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**
@@ -452,15 +467,7 @@ export function createSubstancePanel(
     const blob = new Blob([toSubstanceFile(substance)], {
       type: "application/json",
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName(substance.name);
-    document.body.append(link);
-    link.click();
-    link.remove();
-    // Revoked later, since some browsers start the download only after the click returns.
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    download(blob, fileName(substance.name));
   });
 
   /** Shows the link in a read-only, selected field, for when it can be neither shared nor copied. */
@@ -538,5 +545,6 @@ export function createSubstancePanel(
       store.setMode(view.mode);
       store.setCut(view.cut);
     },
+    applied,
   };
 }

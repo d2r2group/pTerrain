@@ -12,6 +12,7 @@ import {
   createModeToggle,
   createReadout,
 } from "./ui/controls";
+import { createFigureMenu } from "./ui/figureMenu";
 import { createLogo } from "./ui/logo";
 import { createFooter } from "./ui/modelDetails";
 import { createPhaseDiagram } from "./ui/phaseDiagram";
@@ -28,9 +29,9 @@ if (!app) throw new Error("pTerrain: #app element is missing from index.html");
 // button), with the theme button at the far right; a bar with the substance menu, the Metastable
 // toggle and Share; then the plots, as wide as the bar, with a column beside them on wide
 // screens, or below on narrow ones: the cut input with the pressure unit, the exaggerated s-l
-// slope checkbox, the readout (for screen readers only) and the substance panel. All four are
-// items of one grid, so that on a narrow phone the header's and the bar's buttons can share a
-// row. The footer follows, after <main>.
+// slope checkbox, the readout (for screen readers only), the Figure row and the substance
+// panel. All four are items of one grid, so that on a narrow phone the header's and the bar's
+// buttons can share a row. The footer follows, after <main>.
 const header = document.createElement("header");
 const mainRow = document.createElement("div");
 mainRow.className = "main-row";
@@ -65,9 +66,19 @@ createMetastableToggle(plotBar, store);
 createCutInput(controls, store);
 createReadout(controls, store);
 createExaggerateToggle(controls, store);
+// Its own row between the exaggerate box and the substance panel, outside the panel's <details>.
+const figureMenu = createFigureMenu(
+  controls,
+  store,
+  () => handles,
+  () => substancePanel.applied(),
+);
 const substancePanel = createSubstancePanel(controls, plotBar, store);
-createPhaseDiagram(diagram, store);
-createSlicePanel(slice, store);
+const handles = {
+  diagram: createPhaseDiagram(diagram, store),
+  slice: createSlicePanel(slice, store),
+};
+handles.diagram.onSwap((swapping) => figureMenu.setSwapping(swapping));
 createFooter(document.body);
 
 // A share link, at start-up or pasted into an open tab: the fragment is

@@ -17,19 +17,23 @@ The cut is an isobar or an isotherm across the diagram. The panel below plots
 $g$ of all three phases along it, on the same x axis: the stable phase (lowest
 $g$) is drawn as a full line and shaded in its region's color, the metastable
 ones dashed. A band along its bottom edge repeats the stable phase's color, also where its
-curve runs off the panel. Dotted lines join each crossing of two $g$ curves to the boundary
-above it, and the stable transitions are written in bold under the diagram.
+curve runs off the panel, and carries the phase's letter, *s*, *l* or *v*. Dotted lines join
+each crossing of two $g$ curves to the boundary above it, and the stable transitions are
+written in bold under the diagram.
 
 ## Using it
 
 - **$p$ | $T$** swaps the axes: an isobar with $g(T)$, or an isotherm with $g(p)$.
 - **ⓘ**, beside it, opens a short overview of the app and of every button.
 - **Move the cut** by dragging its line, with the slider or number field, or
-  with the keyboard on its handle. Hatched strips are where the cut meets no
-  boundary.
+  with the keyboard on its handle. A drag is pulled slightly onto the triple
+  point. Hatched strips are where the cut meets no boundary.
 - **kPa | bar | atm** sets the pressure unit everywhere; clicking the **logo**
   moves the cut through $(T_\mathrm{tp}, p_\mathrm{tp})$.
 - **Metastable** shows or hides the metastable extensions and curves.
+- **Figure** saves the plots as SVG or PNG images, at the current cut or at
+  three (above, through and below the triple point), in one ZIP with the
+  substance's JSON file.
 - **Exaggerate s-l slope** enlarges $\Delta v_\mathrm{fus}$ so that the almost
   vertical solid–liquid line visibly leans (back for water, forward for CO₂). It
   changes the model, so the slice and values follow; the s-v and l-v lines stay
@@ -93,6 +97,7 @@ npm run lint          # ESLint
 npm run format:check  # Prettier
 npm run typecheck     # tsc --noEmit
 npm run math          # re-render the Model Details formulas after editing them
+npm run mockup        # re-render assets/mockup.png (build and preview first)
 ```
 
 The first Playwright run needs `npx playwright install chromium`. The physics

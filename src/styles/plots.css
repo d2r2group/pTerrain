@@ -1,0 +1,399 @@
+/* The two plots (plan §4 items 1–4): the axes, the phase diagram with its cut, labels and
+   hatch, and the slice panel with its band. */
+
+/* Axis labels: the variables T, p and g in italic; the subscript of g_tp stays upright. */
+.axis-label .symbol {
+  font-style: italic;
+}
+
+/* Hidden metastable branches: the dashed curves and extensions, their guides and markers, and
+   their readout rows. The stable ones always stay. */
+.hide-metastable .metastable,
+.readout.hide-metastable .transitions li.metastable {
+  display: none;
+}
+
+/* The top and right edges of each plot, in the axis color, so the axes close into a frame. */
+.frame {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+/* Square ends carry each line half its width past the corner, into the line it meets, so no
+   corner of the frame misses a pixel (the axes have no outer ticks to cover them). */
+.frame,
+.axis .domain {
+  stroke-linecap: square;
+}
+
+/* Phase diagram: the region bitmap sits under the SVG, in the plot area. */
+.phase-diagram {
+  position: relative;
+}
+
+.phase-diagram canvas.regions {
+  position: absolute;
+  transform-origin: 0 0;
+}
+
+.phase-diagram svg {
+  position: relative;
+  display: block;
+  overflow: visible;
+  /* Dragging the cut must not scroll the page. */
+  touch-action: none;
+  user-select: none;
+}
+
+.phase-diagram .axis {
+  color: var(--muted);
+  /* d3 sets font-family="sans-serif" on each axis. */
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.phase-diagram .axis-label {
+  fill: var(--fg);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+.phase-diagram .boundary {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.phase-diagram .boundary.stable {
+  stroke: var(--boundary);
+  stroke-width: 2;
+}
+
+.phase-diagram .boundary.metastable {
+  stroke: var(--boundary-metastable);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.phase-diagram .triple-point {
+  fill: var(--boundary);
+}
+
+/* "slope exaggerated", beside the top of the exaggerated s-l line. */
+.phase-diagram .exaggerated-note {
+  fill: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Phase names in the middle of their regions, in the curve colors. */
+.phase-diagram .phase-label {
+  font-size: 14px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.phase-diagram .phase-label[data-phase="s"] {
+  fill: var(--curve-solid);
+}
+
+.phase-diagram .phase-label[data-phase="l"] {
+  fill: var(--curve-liquid);
+}
+
+.phase-diagram .phase-label[data-phase="v"] {
+  fill: var(--curve-vapor);
+}
+
+/* Stable transition values in bold in the x tick-label row, on a patch of the background that
+   hides the guide line beneath, and a tick mark at the true x. */
+.phase-diagram .transition-value text {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  fill: var(--fg);
+}
+
+.phase-diagram .transition-value rect {
+  fill: var(--bg);
+}
+
+.phase-diagram .transition-tick {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+
+.phase-diagram .cut-line {
+  stroke: var(--cut);
+  stroke-width: 1.5;
+  transition: stroke-width 120ms;
+}
+
+/* Dragging the cut, or hovering anywhere on it, thickens the line and grows the knob. */
+.phase-diagram .cut-dragging .cut-line {
+  stroke-width: 2.5;
+}
+
+.phase-diagram .cut-hit {
+  stroke: transparent;
+  cursor: ns-resize;
+}
+
+.phase-diagram .cut-handle {
+  cursor: ns-resize;
+  outline: none;
+}
+
+.phase-diagram .cut-handle-target {
+  fill: transparent;
+}
+
+.phase-diagram .cut-handle-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 120ms,
+    filter 120ms;
+}
+
+/* Only where hover is real: a tap would leave it on. */
+@media (hover: hover) {
+  .phase-diagram .cut:hover .cut-line {
+    stroke-width: 2.5;
+  }
+
+  .phase-diagram .cut:hover .cut-handle-face {
+    transform: scale(1.18);
+  }
+}
+
+.phase-diagram .cut-dragging .cut-handle-face {
+  transform: scale(1.18);
+  filter: drop-shadow(0 1px 3px var(--drag-shadow));
+}
+
+.phase-diagram svg.cut-dragging,
+.phase-diagram svg.cut-dragging * {
+  cursor: grabbing;
+}
+
+.phase-diagram .cut-handle-knob {
+  fill: var(--cut);
+}
+
+.phase-diagram .cut-handle-grip {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The handle's ring when it is clicked, dragged or tabbed to, in the d2r2 purple. */
+.phase-diagram .cut-handle:focus .cut-handle-knob {
+  stroke: var(--d2r2);
+  stroke-width: 3;
+}
+
+/* A ring that pings out of the knob until the handle first gets focus, on each page load. */
+.phase-diagram .cut-handle-ping {
+  display: none;
+  fill: none;
+  stroke: var(--cut);
+  stroke-width: 2;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .phase-diagram .cut-handle-ping {
+    display: inline;
+    animation: cut-ping 2.4s ease-out 1s infinite both;
+  }
+}
+
+@keyframes cut-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  60%,
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* A light hatch over the cut values that meet no boundary, where the cut cannot go. */
+.phase-diagram .reach-hatch line {
+  stroke: var(--muted);
+  stroke-opacity: 0.35;
+  stroke-width: 1;
+}
+
+/* While the axes swap, the axes, the cut and its guides change meaning, so they fade out. */
+.phase-diagram .reach,
+.phase-diagram .axes,
+.phase-diagram .cut,
+.phase-diagram .guides,
+.phase-diagram .markers {
+  transition: opacity 150ms;
+}
+
+.phase-diagram.swapping .exaggerated-note,
+.phase-diagram.swapping .reach,
+.phase-diagram.swapping .axes,
+.phase-diagram.swapping .cut,
+.phase-diagram.swapping .guides,
+.phase-diagram.swapping .markers {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-diagram .reach,
+  .phase-diagram .axes,
+  .phase-diagram .cut,
+  .phase-diagram .guides,
+  .phase-diagram .markers {
+    transition: none;
+  }
+}
+
+/* Slice panel: g along the cut, on the diagram's x scale. */
+.slice-panel svg {
+  display: block;
+  overflow: visible;
+}
+
+.slice-panel .axis {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.slice-panel .axis-label {
+  fill: var(--fg);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+/* Under the envelope, in the stable phase's region color. */
+.slice-panel .shade {
+  fill-opacity: var(--region-opacity);
+  stroke: none;
+}
+
+.slice-panel .shade[data-phase="s"] {
+  fill: var(--phase-solid);
+}
+
+.slice-panel .shade[data-phase="l"] {
+  fill: var(--phase-liquid);
+}
+
+.slice-panel .shade[data-phase="v"] {
+  fill: var(--phase-vapor);
+}
+
+/* Along the bottom edge, in the stable phase's curve color: which phase is stable where, also
+   where its curve is off the panel. */
+.slice-panel .stable-band rect[data-phase="s"] {
+  fill: var(--curve-solid);
+}
+
+.slice-panel .stable-band rect[data-phase="l"] {
+  fill: var(--curve-liquid);
+}
+
+.slice-panel .stable-band rect[data-phase="v"] {
+  fill: var(--curve-vapor);
+}
+
+/* Each stable phase's letter just above its run of the band, in its curve color, on a halo of
+   the background over the shading. */
+.slice-panel .band-label {
+  fill: var(--fg);
+  stroke: var(--bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  font-size: 12px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.slice-panel .band-label[data-phase="s"] {
+  fill: var(--curve-solid);
+}
+
+.slice-panel .band-label[data-phase="l"] {
+  fill: var(--curve-liquid);
+}
+
+.slice-panel .band-label[data-phase="v"] {
+  fill: var(--curve-vapor);
+}
+
+.slice-panel .curve {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.slice-panel .curve.stable {
+  stroke-width: 2.5;
+}
+
+.slice-panel .curve.metastable {
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.slice-panel .curve[data-phase="s"] {
+  stroke: var(--curve-solid);
+}
+
+.slice-panel .curve[data-phase="l"] {
+  stroke: var(--curve-liquid);
+}
+
+.slice-panel .curve[data-phase="v"] {
+  stroke: var(--curve-vapor);
+}
+
+/* Guide lines are dotted, so they stay apart from the dashed metastable lines. Stable
+   transitions get a darker line than metastable crossings. */
+.guide {
+  stroke-width: 1.5;
+  stroke-dasharray: 0 4;
+  stroke-linecap: round;
+}
+
+.guide.stable {
+  stroke: var(--boundary);
+}
+
+.guide.metastable {
+  stroke: var(--boundary-metastable);
+  opacity: 0.6;
+}
+
+.crossing-marker {
+  fill: var(--bg);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.crossing-marker.stable {
+  stroke: var(--boundary);
+}
+
+.crossing-marker.metastable {
+  stroke: var(--boundary-metastable);
+}

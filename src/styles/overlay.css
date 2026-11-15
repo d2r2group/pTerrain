@@ -1,0 +1,250 @@
+/* The overlays: Model Details and About. */
+
+/* The overlays, Model Details and About: a modal dialog whose body scrolls on its own, with no
+   padding on the dialog itself, so that a click on it rather than its contents is a click on the
+   backdrop. */
+.overlay {
+  box-sizing: border-box;
+  width: min(46rem, calc(100vw - 32px));
+  max-width: none;
+  max-height: 90vh;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.overlay[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.overlay::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+/* The page behind does not scroll while the overlay is open. */
+html:has(.overlay[open]) {
+  overflow: hidden;
+}
+
+.overlay .dialog-head {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.25rem 0.25rem 1.25rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 50%, var(--bg));
+}
+
+.overlay h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.overlay .dialog-close {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Positioned, so that what is positioned inside it (the About overlay's visually hidden names)
+   scrolls with it instead of stretching the dialog to a second scroll bar. */
+.overlay .dialog-body {
+  position: relative;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 1.25rem 1.25rem;
+  line-height: 1.5;
+}
+
+.overlay h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.overlay p,
+.overlay ul {
+  margin: 0.5rem 0;
+}
+
+/* Math rendered to SVG by scripts/renderMath.mjs, sized in ex of the surrounding text and drawn
+   in currentColor, so it follows the theme. The MathML beside each SVG is for screen readers
+   only. A display equation wider than the dialog (on a phone) shrinks to fit. */
+.model-details mjx-container {
+  direction: ltr;
+}
+
+.model-details mjx-container > svg {
+  overflow: visible;
+}
+
+.model-details .equation {
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+.model-details .equation mjx-container {
+  display: block;
+}
+
+.model-details .equation mjx-container > svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.model-details mjx-assistive-mml {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: auto !important;
+  max-width: 100%;
+  padding: 1px 0 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%);
+  user-select: none;
+}
+
+.math-glyphs {
+  display: none;
+}
+
+/* g(T, p) in the Model Details button, in the button's text color, on the label's baseline. */
+.button-math {
+  margin-right: 0.5rem;
+}
+
+.button-math svg {
+  overflow: visible;
+}
+
+.button-math mjx-assistive-mml {
+  display: none;
+}
+
+.model-details .disclaimer {
+  margin: 1.5rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--muted) 30%, var(--bg));
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.model-details .table-scroll {
+  overflow-x: auto;
+}
+
+.substance-table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.substance-table th,
+.substance-table td {
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 30%, var(--bg));
+  text-align: left;
+  vertical-align: top;
+}
+
+.substance-table thead th {
+  border-bottom-color: var(--muted);
+}
+
+.substance-table th[scope="row"] {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.substance-table .value {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.substance-table .unit,
+.substance-table .source {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* The About overlay: each control as it looks on the page, beside what it does; under it on a
+   phone. The copies take the classes of their containers on the page, so they are styled as
+   there, and the overlay sits in #app, so they turn icon only with the page's. */
+.about dl {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.about dd {
+  margin: 0;
+}
+
+/* The cut handle's knob, drawn inline in the text where the list names it. */
+.about-handle {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.2em;
+}
+
+.about-handle circle {
+  fill: var(--cut);
+}
+
+.about-handle path {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Also below 20.5rem, where .main-row and .plot-bar on the page give up their boxes. */
+.about-key,
+.about-key.main-row,
+.about-key.plot-bar {
+  display: flex;
+  align-items: center;
+  line-height: normal;
+}
+
+/* Between the theme key's moon and sun, which keep the button's 44 px boxes. */
+.about-key .about-slash {
+  color: var(--muted);
+}
+
+.about-key.plot-bar {
+  margin: 0;
+}
+
+/* In the footer's small type. */
+.about-key > .model-details-button {
+  font-size: 0.85rem;
+}
+
+.about-key > .apply,
+.about-key > .file-actions {
+  flex: 1;
+}
+
+@media (max-width: 30rem) {
+  .about dl {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+
+  .about dd {
+    margin-bottom: 0.75rem;
+  }
+}

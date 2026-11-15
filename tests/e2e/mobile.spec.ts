@@ -1,4 +1,5 @@
 import { devices, expect, test, type Page } from "@playwright/test";
+import { plotsDrawn } from "./plots";
 
 // A phone with a touch screen. The browser comes from the project, so the
 // device's own browser type is not taken over.
@@ -10,6 +11,24 @@ const value = async (page: Page) => Number(await handle(page).getAttribute("aria
 /** A pressure as the number field shows it: three significant figures. */
 const sig3 = (x: number) => String(Number(x.toPrecision(3)));
 
+/**
+ * Resizes the viewport and waits for the page to be laid out at the new width, unzoomed and not
+ * overflowing. Until the plots' ResizeObserver redraws them, they keep their old width, so a
+ * narrower page overflows for a frame and the phone zooms it out to fit.
+ */
+async function resize(page: Page, width: number, height = 800): Promise<void> {
+  await page.setViewportSize({ width, height });
+  await expect
+    .poll(() =>
+      page.evaluate(() => [
+        window.innerWidth,
+        window.visualViewport!.scale,
+        document.documentElement.scrollWidth,
+      ]),
+    )
+    .toEqual([width, 1, width]);
+}
+
 const errors = new WeakMap<Page, string[]>();
 
 test.beforeEach(async ({ page }) => {
@@ -17,7 +36,7 @@ test.beforeEach(async ({ page }) => {
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
   await page.goto("./");
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
 });
 
 test.afterEach(({ page }) => {
@@ -97,12 +116,13 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
   page,
 }) => {
   // Below 408 px the header is compact: a smaller logo and a p | T toggle 44 px wide in all,
-  // since either half switches the mode.
-  await page.setViewportSize({ width: 400, height: 800 });
-  expect((await page.locator(".mode-toggle").boundingBox())!.width).toBe(44);
+  // since either half switches the mode. Box sizes come through the device's 2.625 px per CSS px
+  // in single precision, so they are compared to 4 decimals.
+  await resize(page, 400);
+  expect((await page.locator(".mode-toggle").boundingBox())!.width).toBeCloseTo(44, 4);
   const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
   const buttons = [".mode-toggle", ".metastable-toggle", ".plot-bar .share"];
-  await page.setViewportSize({ width: 360, height: 800 });
+  await resize(page, 360);
   const centers = await page
     .locator("header .logo, .main-row > *, header .theme-toggle")
     .evaluateAll((els) =>
@@ -119,7 +139,7 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
   // Narrower: the logo, the info button and the theme button; the three buttons, evenly spread
   // over the page; the menu, as wide as the page; then the plots.
   for (const width of [359, 320, 280]) {
-    await page.setViewportSize({ width, height: 800 });
+    await resize(page, width);
     const logo = await box(".logo");
     const theme = await box("header .theme-toggle");
     const info = await box(".info-button");
@@ -133,7 +153,7 @@ test("the compact header fits one row down to 360 px; narrower, the buttons shar
     expect(Math.abs(info.y - theme.y)).toBeLessThan(1);
     expect(Math.abs(info.x + info.width - theme.x)).toBeLessThan(1);
     for (const b of row) {
-      expect(b.width).toBe(44);
+      expect(b.width).toBeCloseTo(44, 4);
       expect(b.y).toBeGreaterThanOrEqual(Math.max(logo.y + logo.height, theme.y + theme.height));
       expect(Math.abs(b.y - row[0]!.y)).toBeLessThan(1);
     }
@@ -155,7 +175,7 @@ test("the overlays do not scroll sideways, down to 280 px", async ({ page }) => 
   // The screen-reader MathML beside each equation is clipped, but would still widen the body.
   for (const name of ["model-details", "about"]) {
     for (const width of [412, 360, 320, 280]) {
-      await page.setViewportSize({ width, height: 800 });
+      await resize(page, width);
       const opener = name === "about" ? ".info-button" : ".model-details-button";
       await page.locator(opener).first().click();
       const body = page.locator(`.${name} .dialog-body`);

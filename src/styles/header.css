@@ -1,0 +1,278 @@
+/* The header (plan §4 item 6, §4.3): the logo, the main row, the theme and info buttons, and
+   the axis and pressure unit toggles. */
+
+/* A container, so that the header and the bar above the plots compact on the width they have:
+   a media query sees the window, scrollbar included, and would switch about 15 px too late. */
+#app {
+  container: app / inline-size;
+}
+
+/* The header: the logo, the main row and the theme button at the far right, on one row. */
+header {
+  grid-area: header;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "logo main theme";
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+header .logo {
+  grid-area: logo;
+}
+
+header .main-row {
+  grid-area: main;
+}
+
+header .theme-toggle {
+  grid-area: theme;
+}
+
+/* Below 23.5rem (376 px) of page width the header compacts from about 371 px to 272 px: a 1.5rem
+   logo and a p | T toggle 44 px wide in all. The toggle is one button, so the whole of it is one
+   44 px touch target. Below 20.5rem its items rearrange with the bar's (see the bar). */
+@container app (max-width: 23.5rem) {
+  header .logo svg {
+    height: 1.5rem;
+  }
+
+  .main-row .mode-toggle > span {
+    min-width: 22px;
+    padding: 0;
+  }
+}
+
+/* The theme button: 44 × 44 px, the minimum touch target, without a border. The info button and
+   the About overlay's copy of the theme button look the same. */
+header > .icon-button,
+.main-row > .info-button,
+.about-key > .icon-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--fg);
+  background: transparent;
+  cursor: pointer;
+}
+
+header > .icon-button:hover,
+.main-row > .info-button:hover {
+  background: color-mix(in srgb, var(--muted) 15%, transparent);
+}
+
+header > .icon-button .icon,
+.main-row > .info-button .icon,
+.about-key > .icon-button .icon {
+  display: block;
+}
+
+/* The logo: outlines in the text color, so it follows the theme, with "errain" in the d2r2
+   purple. It is a borderless button that snaps the cut to the triple point. */
+.logo {
+  margin: 0;
+  line-height: 0;
+}
+
+.logo button {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--fg);
+  background: transparent;
+  cursor: pointer;
+}
+
+.logo svg {
+  display: block;
+  width: auto;
+  height: 2.25rem;
+  max-width: 100%;
+  fill: currentColor;
+}
+
+.logo .logo-accent {
+  fill: var(--d2r2);
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: var(--fg);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The main row: compact buttons that wrap on a phone and never scroll sideways. */
+.main-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+/* Every control in the row is the same height, borders included, and every button is at least
+   44 × 44 px, the minimum touch target. */
+.main-row > * {
+  box-sizing: border-box;
+  height: 44px;
+}
+
+.main-row > button {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.main-row > button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.main-row > button:disabled .icon {
+  opacity: 0.4;
+}
+
+.metastable-toggle[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--selected);
+  border-color: var(--selected);
+}
+
+/* Icon-only buttons: square. */
+.main-row > .icon-button {
+  justify-content: center;
+  min-width: 44px;
+  padding: 0;
+}
+
+.main-row .icon,
+.main-row .eye {
+  display: block;
+  flex: none;
+}
+
+/* The axis toggle: one button that shows both modes, p | T, with the current one filled. The
+   border is on the halves, as on the unit toggle, so that the current one can take the fill's
+   color; 44 px each make it 88 px wide, as two 44 px buttons were. */
+.main-row > .mode-toggle {
+  gap: 0;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  font: inherit;
+  color: var(--fg);
+}
+
+.mode-toggle > span {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+}
+
+.mode-toggle > span:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.mode-toggle > span:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.mode-toggle > span + span {
+  border-left: 0;
+}
+
+/* p and T in italic, as on the axes. */
+.mode-toggle i {
+  font-size: 1.15rem;
+}
+
+.mode-toggle > span.current {
+  color: var(--bg);
+  background: var(--selected);
+  border-color: var(--selected);
+}
+
+/* A selected half or unit after the first has no left border of its own, so it paints over its
+   neighbor's right border in the fill's color. */
+.mode-toggle > span + span.current,
+.unit-toggle button + button[aria-pressed="true"] {
+  box-shadow: -1px 0 0 var(--selected);
+}
+
+/* Pressure unit toggle: buttons in one segmented control. */
+/* The border is on the buttons, not the group, so each button is the full 44 px high. */
+.unit-toggle {
+  display: inline-flex;
+}
+
+.unit-toggle button {
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--muted);
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  cursor: pointer;
+}
+
+.unit-toggle button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.unit-toggle button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.unit-toggle button + button {
+  border-left: 0;
+}
+
+.unit-toggle button[aria-pressed="true"] {
+  color: var(--bg);
+  background: var(--selected);
+  border-color: var(--selected);
+}
+
+/* The unit toggle sits in the cut input's label row; 44 px high, the minimum touch target. */
+.unit-toggle button {
+  min-height: 44px;
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.unit-toggle button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+/* The ring is inside the button, where the focus purple would vanish on the selected fill. */
+.unit-toggle button[aria-pressed="true"]:focus-visible {
+  outline-color: var(--bg);
+}

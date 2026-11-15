@@ -76,6 +76,14 @@ const SECTIONS: readonly { heading: string; keys: readonly Key[] }[] = [
           "water, visibly leans. The plots become schematic.",
       },
       {
+        selector: ".figure-row .figure",
+        context: "figure-row",
+        name: "Figure",
+        text:
+          "Saves the plots as SVG or PNG images, at the current cut or at three (above, " +
+          "through and below the triple point), in one ZIP with the substance's JSON file.",
+      },
+      {
         selector: ".parameters summary",
         context: "parameters",
         name: "Parameters",
@@ -135,7 +143,8 @@ cut crosses a phase boundary.</p>
 <ul>
   <li>Drag the <svg class="about-handle" viewBox="-12 -12 24 24" aria-hidden="true"><circle
     r="11"/><path d="${HANDLE_GRIP}"/></svg><span class="visually-hidden">circle with up and down
-    arrows</span> in the upper plot to change the cut shown in the lower plot.</li>
+    arrows</span> in the upper plot to change the cut shown in the lower plot. Near the triple
+    point, the cut snaps onto it.</li>
   <li>Use water or CO₂, or edit your own substance.</li>
   <li>Show metastable extensions, or exaggerate a steep solid–liquid line.</li>
   <li>Save a substance as a file, or share a link to it.</li>

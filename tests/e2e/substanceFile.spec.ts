@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { devices, expect, test, type Page } from "@playwright/test";
+import { plotsDrawn } from "./plots";
 
 // The substance name, the JSON file and the share link.
 
@@ -24,7 +25,7 @@ async function open(page: Page, hash = "#h2o") {
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
   await page.goto(`./${hash}`);
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
   await page.locator(".parameters summary").click();
 }
 
@@ -172,7 +173,7 @@ test("an exported Custom file, imported after a reload, restores the substance a
   expect(name).toBe("My_substance.json");
 
   await page.reload();
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
   await page.locator(".parameters summary").click();
   await handle(page).focus();
   await page.keyboard.press("PageUp");

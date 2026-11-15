@@ -38,7 +38,8 @@ import {
   substanceFrom,
   substanceValues,
 } from "../src/ui/substanceFields";
-import { cutAfterKey } from "../src/ui/cutDrag";
+import { cutAfterKey, CUT_MAGNET_PX, snapCut } from "../src/ui/cutDrag";
+import { exaggerated } from "../src/physics/exaggerate";
 import {
   extremeWithin,
   phaseLabels,
@@ -823,4 +824,70 @@ describe("cut keys", () => {
       for (const key of ["a", "Enter", "Tab", "toString"]) expect(at(key)).toBeNull();
     },
   );
+});
+
+describe("cut magnet", () => {
+  // The cut value whose line lies `dy` px below the triple point's on screen. A round trip through
+  // cutValueAt can land a hair past 2 px, so the edge cases use 1.999.
+  const offBy = (mode: Mode, params: Params, w: PlotWindow, dy: number) =>
+    cutValueAt(mode, cutY(mode, mode === "isobar" ? params.pt : params.Tt, w, size) + dy, w, size);
+
+  it("is 2 px", () => expect(CUT_MAGNET_PX).toBe(2));
+
+  for (const [name, preset] of Object.entries(PRESETS)) {
+    it.each(MODES)(
+      `${name}, %s: within 2 px the cut snaps exactly; at 3 px it does not`,
+      (mode) => {
+        const { params, window: w } = preset;
+        const target = mode === "isobar" ? params.pt : params.Tt;
+        for (const dy of [-1.999, -1.5, -0.5, 0, 0.5, 1.5, 1.999]) {
+          expect(snapCut(mode, offBy(mode, params, w, dy), params, w, size)).toBe(target);
+        }
+        for (const dy of [-3, 3, 40]) {
+          const value = offBy(mode, params, w, dy);
+          expect(snapCut(mode, value, params, w, size)).toBe(value);
+        }
+      },
+    );
+
+    it(`${name}: the exaggerated model snaps to the same triple point`, () => {
+      const { params, window: w } = preset;
+      const ex = exaggerated(params, w);
+      expect(ex.factor).toBeGreaterThan(1);
+      expect([ex.params.pt, ex.params.Tt]).toEqual([params.pt, params.Tt]);
+      // The three phases still meet there: the s-v and l-v lines are not moved.
+      const [gs, gl, gv] = PHASES.map((ph) => gibbs(ph, params.Tt, params.pt, ex.params));
+      expect(gl).toBeCloseTo(gs as number, 6);
+      expect(gv).toBeCloseTo(gs as number, 6);
+      for (const mode of MODES) {
+        const value = offBy(mode, params, w, 1);
+        expect(snapCut(mode, value, ex.params, w, size)).toBe(
+          snapCut(mode, value, params, w, size),
+        );
+      }
+    });
+  }
+
+  it("holds the radius in px on the log p axis, with p_tp low or high in the window", () => {
+    const { params } = co2;
+    const decades = 6;
+    const low = { ...co2.window, pmin: params.pt / 2, pmax: params.pt * 10 ** decades };
+    const high = { ...co2.window, pmin: params.pt / 10 ** decades, pmax: params.pt * 2 };
+    for (const w of [low, high]) {
+      for (const dy of [-1.999, 1.999]) {
+        expect(snapCut("isobar", offBy("isobar", params, w, dy), params, w, size)).toBe(params.pt);
+      }
+      for (const dy of [-3, 3]) {
+        const value = offBy("isobar", params, w, dy);
+        expect(snapCut("isobar", value, params, w, size)).toBe(value);
+      }
+    }
+  });
+
+  it("takes a radius", () => {
+    const { params, window: w } = h2o;
+    const value = offBy("isotherm", params, w, 5);
+    expect(snapCut("isotherm", value, params, w, size)).toBe(value);
+    expect(snapCut("isotherm", value, params, w, size, 6)).toBe(params.Tt);
+  });
 });

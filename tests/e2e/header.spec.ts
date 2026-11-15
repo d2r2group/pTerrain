@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { plotsDrawn } from "./plots";
 
 const errors = new WeakMap<Page, string[]>();
 
@@ -15,7 +16,7 @@ test.afterEach(({ page }) => {
 async function open(page: Page) {
   // The tests are written for H₂O; a first visit opens on CO₂ (tested in controls.spec.ts).
   await page.goto("./#h2o");
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
 }
 
 /** The color of the region bitmap's top-left pixel, in the solid region of H₂O. */
@@ -193,7 +194,7 @@ test.describe("in a dark system scheme", () => {
     const darkPixel = await regionPixel(page);
 
     await page.reload();
-    await expect(page.locator(".phase-diagram svg")).toBeVisible();
+    await plotsDrawn(page);
     await expect(html).toHaveAttribute("data-theme", "dark");
     expect(await regionPixel(page)).toEqual(darkPixel);
 

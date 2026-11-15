@@ -105,6 +105,19 @@ export function cutOf(state: Readonly<State>): Cut {
   return cutFor(state.mode, state.cuts);
 }
 
+/**
+ * `state` with its current mode's cut at `value`, unclamped, and the crossings of that cut: a view
+ * that the figure export draws without the store.
+ */
+export function stateAtCut(state: Readonly<State>, value: number): State {
+  const cuts = { ...state.cuts, [state.mode]: value };
+  return {
+    ...state,
+    cuts,
+    crossings: crossings(cutFor(state.mode, cuts), state.model, state.window),
+  };
+}
+
 function clamp(x: number, [lo, hi]: [number, number]): number {
   return Math.min(hi, Math.max(lo, x));
 }

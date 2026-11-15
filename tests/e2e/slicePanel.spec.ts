@@ -470,3 +470,128 @@ test("no axis has outer ticks: its line is one straight segment", async ({ page 
   for (const d of await lines.evaluateAll((els) => els.map((el) => el.getAttribute("d") ?? "")))
     expect(d).toMatch(/^M[^A-Z]+[HV][^A-Z]+$/);
 });
+
+/** The band's runs and the letters over them, in client px, with whether each letter has its curve color. */
+function readBandLabels(page: Page) {
+  return page.evaluate(() => {
+    const root = document.querySelector(".slice-panel")!;
+    const style = getComputedStyle(root);
+    const curve = (phase: string) =>
+      style.getPropertyValue(`--curve-${{ s: "solid", l: "liquid", v: "vapor" }[phase]}`).trim();
+    const hex = (rgb: string) =>
+      "#" +
+      rgb
+        .match(/\d+/g)!
+        .slice(0, 3)
+        .map((n) => Number(n).toString(16).padStart(2, "0"))
+        .join("");
+    const runs = [...root.querySelectorAll(".stable-band rect")]
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return { phase: el.getAttribute("data-phase")!, left: r.left, right: r.right, top: r.top };
+      })
+      .sort((a, b) => a.left - b.left);
+    const labels = [...root.querySelectorAll<SVGTextElement>(".band-label")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        text: el.textContent,
+        phase: el.getAttribute("data-phase")!,
+        center: r.left + r.width / 2,
+        left: r.left,
+        right: r.right,
+        bottom: r.bottom,
+        width: el.getComputedTextLength(),
+        colored: hex(getComputedStyle(el).fill) === curve(el.getAttribute("data-phase")!),
+        hidden: el.closest("[aria-hidden='true']") !== null,
+      };
+    });
+    return { runs, labels };
+  });
+}
+
+test("the band carries each stable phase's letter over its run, in its curve color", async ({
+  page,
+}) => {
+  await page.goto("./#co2;p,100");
+  await expect(slice(page)).toHaveAttribute("aria-label", /isobar at 100/);
+  const { runs, labels } = await readBandLabels(page);
+  expect(labels.map((l) => l.text)).toEqual(["s", "v"]);
+  for (const l of labels) {
+    const run = runs.find((r) => r.phase === l.phase)!;
+    expect(l.text).toBe(l.phase);
+    expect(l.colored).toBe(true);
+    expect(l.hidden).toBe(true);
+    expect(l.center).toBeGreaterThan(run.left);
+    expect(l.center).toBeLessThan(run.right);
+    // Just above the band, clear of it.
+    expect(l.bottom).toBeLessThanOrEqual(run.top + 0.5);
+    expect(run.top - l.bottom).toBeLessThan(6);
+  }
+});
+
+test("just above p_tp, the narrow liquid run is named only where its letter fits", async ({
+  page,
+}) => {
+  // On CO₂ the liquid's run grows from nothing at p_tp = 517.964 kPa.
+  for (const [p, named] of [
+    [519, false],
+    [2000, true],
+  ] as const) {
+    await page.goto(`./#co2;p,${p}`);
+    await expect(slice(page)).toHaveAttribute("aria-label", new RegExp(`isobar at ${p}`));
+    const { runs, labels } = await readBandLabels(page);
+    expect(runs.map((r) => r.phase)).toEqual(["s", "l", "v"]);
+    const liquid = runs[1]!;
+    const l = labels.find((x) => x.text === "l");
+    expect(l !== undefined).toBe(named);
+    if (l) {
+      expect(liquid.right - liquid.left).toBeGreaterThanOrEqual(l.width + 8 - 0.5);
+      expect(l.left).toBeGreaterThan(liquid.left);
+      expect(l.right).toBeLessThan(liquid.right);
+    } else {
+      expect(liquid.right - liquid.left).toBeLessThan(12);
+    }
+    // The side runs are always named, and no two letters overlap.
+    expect(labels.map((x) => x.text)).toEqual(named ? ["s", "l", "v"] : ["s", "v"]);
+    for (let k = 1; k < labels.length; k++) {
+      expect(labels[k]!.left).toBeGreaterThan(labels[k - 1]!.right);
+    }
+  }
+});
+
+test("the band's letters follow a cut drag and a mode switch", async ({ page }) => {
+  await page.goto("./#co2;p,100");
+  await expect(slice(page)).toHaveAttribute("aria-label", /isobar at 100/);
+  // Drag the isobar up past p_tp: the liquid's run, and its letter, appear.
+  const line = (await page.locator(".cut-line").boundingBox())!;
+  const x = line.x + line.width / 2;
+  const y = line.y + line.height / 2;
+  await page.mouse.move(x, y + 15);
+  await page.mouse.down();
+  await page.mouse.move(
+    x,
+    y + 15 - 0.6 * (y - (await page.locator(".phase-diagram svg").boundingBox())!.y),
+    {
+      steps: 5,
+    },
+  );
+  await page.mouse.up();
+  await expect(slice(page)).not.toHaveAttribute("aria-label", /isobar at 100/);
+  const dragged = await readBandLabels(page);
+  expect(dragged.labels.map((l) => l.text)).toEqual(["s", "l", "v"]);
+  for (const l of dragged.labels) {
+    const run = dragged.runs.find((r) => r.phase === l.phase)!;
+    expect(l.center).toBeGreaterThan(run.left);
+    expect(l.center).toBeLessThan(run.right);
+  }
+
+  await setMode(page, "constant T");
+  const switched = await readBandLabels(page);
+  // An isotherm below T_tp on CO₂: solid at high p, vapor at low p.
+  expect(switched.labels.map((l) => l.text)).toEqual(["v", "s"]);
+  for (const l of switched.labels) {
+    const run = switched.runs.find((r) => r.phase === l.phase)!;
+    expect(l.center).toBeGreaterThan(run.left);
+    expect(l.center).toBeLessThan(run.right);
+  }
+});

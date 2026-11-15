@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { plotsDrawn } from "./plots";
 
 // The draggable handle on the cut line; the controls have a range slider of their own.
 const handle = (page: Page) => page.locator(".cut-handle");
@@ -13,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   page.on("pageerror", (err) => seen.push(err.message));
   // The tests are written for H₂O; a first visit opens on CO₂ (tested in controls.spec.ts).
   await page.goto("./#h2o");
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
 });
 
 test.afterEach(({ page }) => {
@@ -122,6 +123,75 @@ test("dragging the cut line moves the cut with the pointer", async ({ page }) =>
   await page.mouse.move(x, 0, { steps: 3 });
   await page.mouse.up();
   expect(await value(page)).toBe(Number(await handle(page).getAttribute("aria-valuemax")));
+});
+
+/** The screen y of the middle of an element's box. */
+async function midY(page: Page, selector: string): Promise<number> {
+  const box = (await page.locator(selector).boundingBox())!;
+  return box.y + box.height / 2;
+}
+
+/** Drags the cut by its hit band so that its line ends `dy` px below the triple point's y. */
+async function dragToTriplePoint(page: Page, dy: number) {
+  const box = (await page.locator(".cut-line").boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const target = (await midY(page, ".phase-diagram .triple-point")) + dy;
+  await page.mouse.move(x, y + 15);
+  await page.mouse.down();
+  await page.mouse.move(x, target + 15 + 0.5 * (y - target), { steps: 3 });
+  await page.mouse.move(x, target + 15, { steps: 2 });
+  await page.mouse.up();
+}
+
+for (const [label, tp, shown] of [
+  ["constant p", 0.611654, "0.612"],
+  ["constant T", 273.16, "273.2"],
+] as const) {
+  test(`${label}: a drag that ends within 2 px of the triple point snaps onto it`, async ({
+    page,
+  }) => {
+    await setMode(page, label);
+    const number = page.getByRole("spinbutton", { name: /typed value/ });
+    await dragToTriplePoint(page, 1);
+    expect(await value(page)).toBe(tp);
+    await expect(number).toHaveValue(shown);
+    // The line is drawn through the triple point.
+    expect(await midY(page, ".cut-line")).toBeCloseTo(
+      await midY(page, ".phase-diagram .triple-point"),
+      0,
+    );
+
+    await dragToTriplePoint(page, 5);
+    expect(await value(page)).not.toBe(tp);
+    expect(
+      (await midY(page, ".cut-line")) - (await midY(page, ".phase-diagram .triple-point")),
+    ).toBeCloseTo(5, 0);
+  });
+}
+
+test("ArrowUp onto the triple point's 2 px does not snap", async ({ page }) => {
+  const tp = 0.611654;
+  // The keys step evenly in log p: find one step from the triple point, in log p and in px.
+  await page.getByRole("heading", { level: 1 }).getByRole("button", { name: "pTerrain" }).click();
+  expect(await value(page)).toBe(tp);
+  await handle(page).focus();
+  await page.keyboard.press("ArrowDown");
+  const step = Math.log10(tp) - Math.log10(await value(page));
+  const tpY = await midY(page, ".phase-diagram .triple-point");
+  const stepPx = (await midY(page, ".cut-line")) - tpY;
+  // From one step and 1 px below, ArrowUp lands 1 px below: within 2 px, but not onto it.
+  const onePx = step / stepPx;
+  const number = page.getByRole("spinbutton", { name: /Isobar pressure/ });
+  await number.fill(String(tp * 10 ** -(step + onePx)));
+  await number.press("Enter");
+  await handle(page).focus();
+  await page.keyboard.press("ArrowUp");
+  const after = await value(page);
+  expect(after).not.toBe(tp);
+  expect(Math.log10(after)).toBeCloseTo(Math.log10(tp) - onePx, 9);
+  const dy = (await midY(page, ".cut-line")) - tpY;
+  expect(dy).toBeCloseTo(1, 0);
 });
 
 test("the handle pings until first used, marks a drag and rings while focused", async ({

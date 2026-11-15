@@ -2,9 +2,30 @@
 // and stepping it from the keyboard while the handle has focus.
 
 import { tickStep } from "d3";
-import type { PlotWindow } from "../physics/gibbs";
+import type { Params, PlotWindow } from "../physics/gibbs";
 import { cutValueAt, cutY, MARGIN, type PlotSize } from "./geometry";
 import { cutBounds, fromCutAxis, toCutAxis, type Mode, type Store } from "./state";
+
+/** How near the triple point's value, in CSS px on screen, a dragged cut is pulled onto it. */
+export const CUT_MAGNET_PX = 2;
+
+/**
+ * The cut `value` of a drag, pulled onto the triple point's value (p_tp for an isobar, T_tp for an
+ * isotherm) when its line lies within `radius` px of it on screen, measured through `cutY` so that
+ * it holds on the log p axis. Otherwise `value` unchanged.
+ */
+export function snapCut(
+  mode: Mode,
+  value: number,
+  params: Params,
+  window: PlotWindow,
+  size: PlotSize,
+  radius: number = CUT_MAGNET_PX,
+): number {
+  const target = mode === "isobar" ? params.pt : params.Tt;
+  const dy = cutY(mode, value, window, size) - cutY(mode, target, window, size);
+  return Math.abs(dy) <= radius ? target : value;
+}
 
 /** What the diagram currently draws, which lags the store's mode while the swap animates. */
 export interface CutView {
@@ -47,7 +68,8 @@ export function cutAfterKey(
  * Lets the cut be dragged by `targets` inside `svg` and stepped from the keyboard on `handle`.
  * Pointer capture keeps the drag going when the finger leaves the band, and the grab offset keeps
  * the line from jumping to the pointer when it is grabbed off-center. Neither starts during a
- * swap. `svg` has the class `cut-dragging` during a drag. `endDrag` ends a drag in progress and
+ * swap. A drag is pulled onto the triple point's value by `snapCut`; the keys step exactly.
+ * `svg` has the class `cut-dragging` during a drag. `endDrag` ends a drag in progress and
  * releases its pointer: on a mode change.
  */
 export function attachCutDrag(
@@ -76,7 +98,10 @@ export function attachCutDrag(
   const onMove = (event: PointerEvent) => {
     if (event.pointerId !== drag?.pointerId) return;
     const y = plotY(event) + drag.offset;
-    store.setCut(cutValueAt(view.mode(), y, store.state.window, view.size()));
+    const { model, window } = store.state;
+    const mode = view.mode();
+    const size = view.size();
+    store.setCut(snapCut(mode, cutValueAt(mode, y, window, size), model, window, size));
   };
   const onUp = (event: PointerEvent) => {
     if (event.pointerId !== drag?.pointerId) return;

@@ -1,4 +1,5 @@
 import { devices, expect, test, type Page } from "@playwright/test";
+import { plotsDrawn } from "./plots";
 
 const errors = new WeakMap<Page, string[]>();
 
@@ -7,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   errors.set(page, seen);
   page.on("pageerror", (err) => seen.push(err.message));
   await page.goto("./");
-  await expect(page.locator(".phase-diagram svg")).toBeVisible();
+  await plotsDrawn(page);
   // The footer is measured in Lato, not in the fallback that shows until it has loaded.
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
 });
