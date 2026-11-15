@@ -254,13 +254,13 @@
 }
 
 /* Current cut's value, smaller, beside it; on a screen too narrow for both, on a line under it. */
-.figure-menu .choice button:has(.cut-value) {
+.figure-menu .choice button:has(.figure-cut) {
   flex-wrap: wrap;
   row-gap: 0;
   align-content: center;
 }
 
-.figure-menu .cut-value {
+.figure-menu .figure-cut {
   font-size: 0.8rem;
 }
 

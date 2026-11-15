@@ -188,7 +188,7 @@ export function createFigureMenu(
   currentCut!.title = "Save the images at the current cut";
   // Its value in brackets, kept with the cut, the mode and the unit.
   const cutValue = document.createElement("span");
-  cutValue.className = "cut-value";
+  cutValue.className = "figure-cut";
   currentCut!.append(cutValue);
   const showCut = (state: Readonly<State>) => {
     cutValue.textContent = `(${cutValueText(state)})`;
