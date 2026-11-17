@@ -225,7 +225,7 @@ export function modelDetailsHtml(): string {
   its axis moved to the bottom, under the band of stable phases, and the bold transition values
   under that. Only the whole figure keeps the dotted guide lines. Each plot area is 360 × 180,
   540 × 270 or 720 × 360 CSS px, whatever the screen; SVG keeps the regions as paths and the
-  text as text, and PNG draws them at 150, 300 or 600 DPI. <i>All unique cuts</i> saves the
+  text as text, and PNG draws them at 150, 300 or 600 DPI. <i>3 unique cuts</i> saves the
   images at three cuts: one through the triple point and one halfway (in log <i>p</i> for
   isobars) between it and each end of the cut's range, rounded.</p>
 </section>

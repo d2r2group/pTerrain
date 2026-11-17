@@ -3,7 +3,7 @@ import { CUSTOM, PRESETS } from "../src/physics/presets";
 import { cutText, seriesCuts, seriesName } from "../src/ui/cutSeries";
 import { stateAtCut, Store, toCutAxis, type Mode } from "../src/ui/state";
 
-// The cuts of a figure series (*All unique cuts*).
+// The cuts of a figure series (*3 unique cuts*).
 
 const MODES: readonly Mode[] = ["isobar", "isotherm"];
 

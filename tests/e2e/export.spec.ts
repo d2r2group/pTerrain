@@ -6,7 +6,7 @@ import { plotsDrawn } from "./plots";
 
 // The figure export (plan §8 phase 16 (c)): the Export figure(s) row above the Parameters panel,
 // the ZIP it downloads, the images' contents and sizes, the light theme, the vector regions, the
-// fixed plot sizes, the PNG's DPI and the series of all unique cuts.
+// fixed plot sizes, the PNG's DPI and the series of 3 unique cuts.
 
 const figureButton = (page: Page) => page.getByRole("button", { name: "Export figure(s)…" });
 const handle = (page: Page) => page.locator(".cut-handle");
@@ -49,7 +49,7 @@ async function downloaded(page: Page, act: () => Promise<void>) {
 type SizeText = "360 × 180" | "540 × 270" | "720 × 360";
 type DpiText = "150 DPI" | "300 DPI" | "600 DPI";
 
-/** Exports the figure: all unique cuts for `series`, else the current cut, at `size` and `dpi`. */
+/** Exports the figure: 3 unique cuts for `series`, else the current cut, at `size` and `dpi`. */
 async function exportFigure(
   page: Page,
   format: "SVG" | "PNG",
@@ -58,7 +58,7 @@ async function exportFigure(
 ) {
   await figureButton(page).click();
   await page
-    .getByRole("menuitemradio", { name: series ? "All unique cuts" : "Current cut" })
+    .getByRole("menuitemradio", { name: series ? "3 unique cuts" : "Current cut" })
     .click();
   if (size) await page.getByRole("menuitemradio", { name: size }).click();
   if (dpi) await page.getByRole("menuitemradio", { name: dpi }).click();
@@ -349,7 +349,7 @@ test("720 × 360 at 600 DPI is lowered, with a note that Escape closes", async (
   await expect(note).toBeEmpty();
 });
 
-test("All unique cuts saves the CO₂ isobars, each image with its own cut's link", async ({
+test("3 unique cuts saves the CO₂ isobars, each image with its own cut's link", async ({
   page,
 }) => {
   await open(page);
@@ -392,7 +392,7 @@ test("the menu works by keyboard, and is clean under axe", async ({ page }) => {
   const results = await new AxeBuilder({ page }).include(".figure-row").analyze();
   expect(results.violations).toEqual([]);
   await page.keyboard.press("ArrowDown");
-  await expect(page.getByRole("menuitemradio", { name: "All unique cuts" })).toBeFocused();
+  await expect(page.getByRole("menuitemradio", { name: "3 unique cuts" })).toBeFocused();
   await page.keyboard.press("End");
   await expect(page.getByRole("menuitem", { name: "PNG" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
@@ -405,7 +405,7 @@ test("the menu works by keyboard, and is clean under axe", async ({ page }) => {
   await expect(menu).toBeHidden();
   await expect(figureButton(page)).toBeFocused();
   await figureButton(page).click();
-  await expect(page.getByRole("menuitemradio", { name: "All unique cuts" })).toHaveAttribute(
+  await expect(page.getByRole("menuitemradio", { name: "3 unique cuts" })).toHaveAttribute(
     "aria-checked",
     "true",
   );

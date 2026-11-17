@@ -1,4 +1,4 @@
-// The cuts of a figure series (*All unique cuts*): from the top of the diagram down, one cut above
+// The cuts of a figure series (*3 unique cuts*): from the top of the diagram down, one cut above
 // the triple point, one through it and one below it, the textbook's three isobars or isotherms
 // (P₁–P₃ or T₁–T₃, the middle one through the triple point o). No DOM here.
 

@@ -1,7 +1,7 @@
 // The Export figure(s) button on its own row above the Parameters panel (plan §8 phase 16 (c)), as
 // ThermoBRIDGE's export row: it saves the plots as SVG or PNG images in one ZIP with the
 // substance's JSON file. Outside the panel's `<details>`, so it works with the panel closed. Its
-// menu holds the cuts (the current cut, or all unique cuts: the three of `seriesCuts`, from the
+// menu holds the cuts (the current cut, or 3 unique cuts: the three of `seriesCuts`, from the
 // top of the diagram down), the plot size and the PNG's DPI; a DPI too large for the figure is
 // lowered, and a note under Export figure(s) says so. The choices are kept while the page is open.
 
@@ -182,8 +182,8 @@ export function createFigureMenu(
       chosen: () => radios.findIndex((r) => r.getAttribute("aria-checked") === "true"),
     };
   };
-  // The current cut, the default, saves the one; all unique cuts saves a series (`seriesCuts`).
-  const cuts = radioGroup("cuts", "Cuts", ["Current cut", "All unique cuts"], 0);
+  // The current cut, the default, saves the one; 3 unique cuts saves a series (`seriesCuts`).
+  const cuts = radioGroup("cuts", "Cuts", ["Current cut", "3 unique cuts"], 0);
   const [currentCut, allCuts] = cuts.radios;
   currentCut!.title = "Save the images at the current cut";
   // Its value in brackets, kept with the cut, the mode and the unit.
