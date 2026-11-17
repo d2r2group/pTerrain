@@ -57,9 +57,7 @@ async function exportFigure(
   { size, dpi }: { size?: SizeText; dpi?: DpiText } = {},
 ) {
   await figureButton(page).click();
-  await page
-    .getByRole("menuitemradio", { name: series ? "3 unique cuts" : "Current cut" })
-    .click();
+  await page.getByRole("menuitemradio", { name: series ? "3 unique cuts" : "Current cut" }).click();
   if (size) await page.getByRole("menuitemradio", { name: size }).click();
   if (dpi) await page.getByRole("menuitemradio", { name: dpi }).click();
   const { name, bytes } = await downloaded(page, () =>
